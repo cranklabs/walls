@@ -14,18 +14,6 @@ COPY . /src
 
 RUN npm run build
 
-FROM node:22-alpine AS app
-
-COPY --from=build /src/.next/standalone /app
-COPY --from=build /src/.next/static /app/.next/static
-COPY --from=build /src/public /app/public
-COPY --from=build /src/fonts /app/fonts
-
-EXPOSE 3000
-WORKDIR /app
-ENV HOSTNAME=0.0.0.0
-ENTRYPOINT [ "node", "server.js" ]
-
 FROM node:22-alpine AS migrate
 
 WORKDIR /app
@@ -38,4 +26,16 @@ COPY drizzle.config.ts ./
 COPY tsconfig.json ./
 COPY src/server/db/schema.ts ./src/server/db/schema.ts
 
-ENTRYPOINT [ "npx", "drizzle-kit", "migrate" ]
+ENTRYPOINT [ "./node_modules/.bin/drizzle-kit", "migrate" ]
+
+FROM node:22-alpine AS app
+
+COPY --from=build /src/.next/standalone /app
+COPY --from=build /src/.next/static /app/.next/static
+COPY --from=build /src/public /app/public
+COPY --from=build /src/fonts /app/fonts
+
+EXPOSE 3000
+WORKDIR /app
+ENV HOSTNAME=0.0.0.0
+ENTRYPOINT [ "node", "server.js" ]

@@ -39,8 +39,8 @@ npm ci
 # Copy environment variables and fill in your values
 cp .env.example .env
 
-# Push the database schema
-npm run db:push
+# Apply database migrations
+npm run db:migrate
 
 # Start the dev server
 npm run dev
@@ -50,11 +50,15 @@ npm run dev
 
 A sample `docker-compose.yml` for running Walls with PostgreSQL and [Mailpit](https://mailpit.axllent.org) (local SMTP server for development):
 
+The `migrate` service applies the committed Drizzle migrations and exits. The app starts only after migrations complete successfully.
+
 ```yaml
 services:
   walls:
+    image: cr.guneet.dev/walls/app:latest
     build:
       context: .
+      target: app
       args:
         BUILD_VERSION: dev
     ports:
@@ -64,9 +68,20 @@ services:
       AUTH_SECRET: "change-me-to-a-random-secret"
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
-      SMTP_USERNAME: ""
-      SMTP_PASSWORD: ""
-      SMTP_MAIL_FROM: "noreply@localhost"
+      SMTP_USERNAME: walls
+      SMTP_PASSWORD: walls
+      SMTP_MAIL_FROM: "noreply@walls.local"
+      DATABASE_URL: "postgresql://walls:walls@db:5432/walls"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    image: cr.guneet.dev/walls/migrate:latest
+    build:
+      context: .
+      target: migrate
+    environment:
       DATABASE_URL: "postgresql://walls:walls@db:5432/walls"
     depends_on:
       db:
@@ -88,6 +103,9 @@ services:
 
   mailpit:
     image: axllent/mailpit
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1" # Local development only
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
     ports:
       - "8025:8025" # Web UI
       - "1025:1025" # SMTP
@@ -96,15 +114,15 @@ volumes:
   pgdata:
 ```
 
-Run with:
+Run with the published images (log in to `cr.guneet.dev` first if required):
 
 ```bash
-docker compose up --build
+docker compose up
 ```
 
-Then open [http://localhost:3000](http://localhost:3000) for the app and [http://localhost:8025](http://localhost:8025) for the Mailpit inbox to view magic link emails.
+To build both images from your local checkout instead, run `docker compose up --build`.
 
-> **Note:** On first run you'll need to push the database schema. You can do this by running `npm run db:push` locally with `DATABASE_URL` pointed at the containerized Postgres, or by adding a migration step to the compose setup.
+Then open [http://localhost:3000](http://localhost:3000) for the app and [http://localhost:8025](http://localhost:8025) for the Mailpit inbox to view magic link emails.
 
 ## Environment Variables
 
@@ -118,6 +136,7 @@ Then open [http://localhost:3000](http://localhost:3000) for the app and [http:/
 | `SMTP_PASSWORD`  | Yes        | SMTP auth password                                             |
 | `SMTP_MAIL_FROM` | Yes        | Sender email address for magic link emails                     |
 | `DATABASE_URL`   | Yes        | PostgreSQL connection string                                   |
+| `DATABASE_SSL`   | No         | Set to `true` to require SSL for Drizzle CLI connections       |
 
 See [`.env.example`](.env.example) for a full template.
 
@@ -145,5 +164,50 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on setting up a developmen
 
 The project includes a multi-stage `Dockerfile` and GitHub Actions workflows for CI/CD:
 
-- **PR checks**: Docker build test, Prettier format check, npm build
-- **Push to main**: Semantic release, Docker build + push, SSH deploy to VPS
+- **PR checks**: Build both the `app` and `migrate` Docker targets, Prettier format check, npm build.
+- **Push to main**: Semantic release; when a new release is published, build and push both images for `linux/amd64` and `linux/arm64` with `latest` and matching version tags.
+- **Manual publish**: Run the **Release & Docker Push** workflow with a `tag` (defaults to `latest`) to build and push both images with that tag without creating a release.
+
+### Container images
+
+| Image                         | Purpose                                                     |
+| ----------------------------- | ----------------------------------------------------------- |
+| `cr.guneet.dev/walls/app`     | Next.js application, listening on port `3000`               |
+| `cr.guneet.dev/walls/migrate` | One-shot job that runs `drizzle-kit migrate` and then exits |
+
+The `app` target is the default Docker build target. Build the migration image explicitly with `docker build --target migrate .`. It includes Drizzle Kit, the migration configuration, and the committed `drizzle/` migration files; it does not need the app's auth or SMTP environment variables.
+
+### Registry credentials
+
+Configure these secrets in the GitHub Actions **`release` environment** with credentials that can push to the `walls` namespace on `cr.guneet.dev`. All image-publishing jobs use this environment, including manual publishes:
+
+- `DOCKER_USERNAME`: registry username.
+- `DOCKER_PASSWORD`: registry password or access token.
+
+The registry and image names are defined in `.github/workflows/push.yml`; the `DOCKER_IMAGE` and `DOCKER_MIGRATE_IMAGE` repository variables are no longer used. The workflow publishes images only; it does not connect to Tailscale or deploy to a VPS. No Tailscale or VPS/SSH credentials are required.
+
+### Applying migrations
+
+Before starting or updating the app, run the migration image with the **same version tag** as the app image. Provide `DATABASE_URL` for the target PostgreSQL database and, if needed, `DATABASE_SSL=true`. For example, with `WALLS_VERSION` set to a published version and `DATABASE_URL` exported in your shell:
+
+```bash
+docker login cr.guneet.dev
+docker pull "cr.guneet.dev/walls/migrate:${WALLS_VERSION}"
+docker pull "cr.guneet.dev/walls/app:${WALLS_VERSION}"
+docker run --rm \
+  --env DATABASE_URL \
+  --env DATABASE_SSL \
+  "cr.guneet.dev/walls/migrate:${WALLS_VERSION}"
+```
+
+Only start or update the app after the migration container exits successfully. The database must be reachable from the container; attach it to the database's Docker network with `--network` if necessary. Migrations apply pending changes using Drizzle's migration journal, so rerunning the same image is safe for a database already managed by Drizzle migrations. For production, back up the database before migrating and use version tags rather than `latest`.
+
+For the Compose example above, update both image tags to the same version, then deploy with:
+
+```bash
+docker compose pull
+docker compose run --rm migrate
+docker compose up -d
+```
+
+Do not continue to `docker compose up -d` if the migration command fails. Databases initialized using `db:push` rather than migrations need an appropriate migration baseline before using `db:migrate`; do not apply the initial migrations blindly to an existing schema.
