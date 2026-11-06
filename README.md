@@ -29,7 +29,7 @@ Beautiful backgrounds for your screens. A wallpaper sharing platform built with 
 
 - Node.js 22+
 - PostgreSQL database
-- SMTP server for magic link emails
+- SMTP server, or an AWS SES identity and sending access, for transactional emails
 
 ### Setup
 
@@ -125,6 +125,55 @@ To build both images from your local checkout instead, run `docker compose up --
 
 Then open [http://localhost:3000](http://localhost:3000) for the app and [http://localhost:8025](http://localhost:8025) for the Mailpit inbox to view magic link emails.
 
+### AWS SES API email
+
+Walls supports the official AWS SDK v3 (`@aws-sdk/client-sesv2`) as an optional
+**server-side** transport for magic links, email OTPs and invitations. SMTP remains
+the default, so existing deployments keep their current behavior unless explicitly
+switched. There is no database migration or authentication-provider change.
+
+For the owner's selected Musashi integration, the non-secret runtime settings are:
+
+| Setting                 | Value                 |
+| ----------------------- | --------------------- |
+| `EMAIL_PROVIDER`        | `ses`                 |
+| `EMAIL_FROM`            | `no-reply@guneet.dev` |
+| `AWS_REGION`            | `us-east-1`           |
+| `SES_CONFIGURATION_SET` | `guneet-dev`          |
+
+The SDK uses its normal server credential-provider chain (for example workload-role
+credentials, or a dedicated sending-only identity injected at runtime). Never use
+the Terraform/operator identity for application mail. Do not put keys in source,
+build arguments, `NEXT_PUBLIC_*`, plaintext configuration files or logs. On Musashi,
+credentials must come from the existing Walls Obscuro namespace under the owning
+[stack rules](https://git.guneet.dev/infra/musashi/src/branch/main/stacks/walls/README.md).
+The client is initialized lazily on the first send; builds and isolated tests do
+not require real AWS credentials. SES uses HTTPS with the SDK's normal certificate
+verification, not an SMTP login or derived SMTP password.
+
+Use only `ses:SendEmail` scoped to the intended verified identity and optional
+configuration set, with the approved `ses:FromAddress` and region constraints.
+Do not grant SES/IAM administrator access or create root access keys. Region,
+identity verification and configuration-set association must agree. Sender
+verification alone is **not** SES production access: sandbox accounts restrict
+recipients and throughput. Before a public-user cutover, check sending access,
+dedicated credentials, abuse/bounce/complaint handling and a controlled test.
+Source preparation does not request sandbox exit or create any AWS identity/key.
+
+SES sends the existing UTF-8 text/HTML templates using `SendEmailCommand` with
+simple content. It does not silently fall back to SMTP or retry an ambiguous send;
+the SDK client uses `maxAttempts: 1`. Provider errors are replaced with a generic
+delivery error rather than logging credentials, recipients, OTPs or login links.
+Normal auth/invite error handling remains in place. Switching back to SMTP is an
+explicit configuration/rollout decision, never an automatic failure fallback.
+
+The existing Musashi image/configuration is not changed by merging or publishing
+this code. A pinned-image app-only rollout, protected credentials, sender choice,
+rollback and any real test recipient require separately reviewed approval. No
+database migration, Discord change, Azure cleanup or unsolicited email is implied.
+Application: https://github.com/cranklabs/walls/issues/48. Coordination:
+https://git.guneet.dev/guneet/workspace/issues/25.
+
 ### Discord login setup
 
 Discord login uses the existing **Better Auth** integration; it does not depend on SMTP or send sign-in emails. Existing email OTP/magic-link methods remain available and their SMTP configuration is unchanged.
@@ -166,19 +215,23 @@ The isolated OAuth tests mock Discord token/profile responses and exercise Bette
 
 ## Environment Variables
 
-| Variable                | Required     | Description                                                    |
-| ----------------------- | ------------ | -------------------------------------------------------------- |
-| `APP_URL`               | Yes          | Public-facing URL of the app (used for auth and invite emails) |
-| `AUTH_SECRET`           | Production   | Auth secret — generate with `openssl rand -base64 32`          |
-| `DISCORD_CLIENT_ID`     | With Discord | Discord OAuth client ID; configure together with its secret    |
-| `DISCORD_CLIENT_SECRET` | With Discord | Server-only Discord OAuth secret; never expose to clients      |
-| `SMTP_HOST`             | Yes          | SMTP server hostname                                           |
-| `SMTP_PORT`             | No           | SMTP port (default `587`)                                      |
-| `SMTP_USERNAME`         | Yes          | SMTP auth username                                             |
-| `SMTP_PASSWORD`         | Yes          | SMTP auth password                                             |
-| `SMTP_MAIL_FROM`        | Yes          | Sender email address for magic link emails                     |
-| `DATABASE_URL`          | Yes          | PostgreSQL connection string                                   |
-| `DATABASE_SSL`          | No           | Set to `true` to require SSL for Drizzle CLI connections       |
+| Variable                | Required     | Description                                                     |
+| ----------------------- | ------------ | --------------------------------------------------------------- |
+| `APP_URL`               | Yes          | Public-facing URL of the app (used for auth and invite emails)  |
+| `AUTH_SECRET`           | Production   | Auth secret — generate with `openssl rand -base64 32`           |
+| `DISCORD_CLIENT_ID`     | With Discord | Discord OAuth client ID; configure together with its secret     |
+| `DISCORD_CLIENT_SECRET` | With Discord | Server-only Discord OAuth secret; never expose to clients       |
+| `EMAIL_PROVIDER`        | No           | `smtp` (default) or `ses`; explicit selection, no fallback      |
+| `EMAIL_FROM`            | With email   | Sender address; falls back to legacy `SMTP_MAIL_FROM`           |
+| `AWS_REGION`            | With SES     | Region of the verified SES identity                             |
+| `SES_CONFIGURATION_SET` | No           | SES configuration-set name; otherwise identity/account defaults |
+| `SMTP_HOST`             | With SMTP    | SMTP server hostname                                            |
+| `SMTP_PORT`             | No           | SMTP port (default `587`)                                       |
+| `SMTP_USERNAME`         | With SMTP    | SMTP auth username                                              |
+| `SMTP_PASSWORD`         | With SMTP    | SMTP auth password                                              |
+| `SMTP_MAIL_FROM`        | Legacy       | Sender fallback when `EMAIL_FROM` is unset                      |
+| `DATABASE_URL`          | Yes          | PostgreSQL connection string                                    |
+| `DATABASE_SSL`          | No           | Set to `true` to require SSL for Drizzle CLI connections        |
 
 See [`.env.example`](.env.example) for a full template.
 

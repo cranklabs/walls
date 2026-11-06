@@ -2,6 +2,8 @@ import { env } from "@/env"
 import { db } from "@/server/db"
 import { deleteInviteByEmail, updateLastSeen } from "@/server/db/queries"
 import * as schema from "@/server/db/schema"
+import { sendEmail } from "@/server/email"
+import { magicLinkMessage, otpMessage } from "@/server/mail/messages"
 
 import {
   createAuthAccessPolicy,
@@ -13,16 +15,6 @@ import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { createAuthMiddleware } from "better-auth/api"
 import { emailOTP, magicLink } from "better-auth/plugins"
-import { createTransport } from "nodemailer"
-
-const transport = createTransport({
-  host: env.SMTP_HOST,
-  port: Number(env.SMTP_PORT),
-  auth: {
-    user: env.SMTP_USERNAME,
-    pass: env.SMTP_PASSWORD,
-  },
-})
 
 const accessPolicy = createAuthAccessPolicy(authAccessStore)
 const discord = getDiscordProviderOptions(
@@ -124,24 +116,12 @@ export const auth = betterAuth({
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
-        await transport.sendMail({
-          from: env.SMTP_MAIL_FROM,
-          to: email,
-          subject: "Sign in to Walls",
-          text: `Click this link to sign in:\n\n${url}\n\nIf you didn't request this, you can ignore this email.`,
-          html: `<p>Click <a href="${url}">here</a> to sign in to Walls.</p><p>If you didn't request this, you can ignore this email.</p>`,
-        })
+        await sendEmail(magicLinkMessage(email, url))
       },
     }),
     emailOTP({
       async sendVerificationOTP({ email, otp }) {
-        await transport.sendMail({
-          from: env.SMTP_MAIL_FROM,
-          to: email,
-          subject: "Sign in to Walls",
-          text: `Your OTP is ${otp}`,
-          html: `<p>Your OTP is ${otp}</p>`,
-        })
+        await sendEmail(otpMessage(email, otp))
       },
     }),
   ],

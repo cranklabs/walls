@@ -1,3 +1,5 @@
+import { getMailConfiguration } from "./server/mail/config"
+
 import { createEnv } from "@t3-oss/env-nextjs"
 import { z } from "zod"
 
@@ -14,11 +16,15 @@ export const env = createEnv({
         : z.string().optional(),
     DISCORD_CLIENT_ID: z.string().min(1).optional(),
     DISCORD_CLIENT_SECRET: z.string().min(1).optional(),
-    SMTP_HOST: z.string(),
+    EMAIL_PROVIDER: z.enum(["smtp", "ses"]).default("smtp"),
+    EMAIL_FROM: z.string().email().optional(),
+    AWS_REGION: z.string().optional(),
+    SES_CONFIGURATION_SET: z.string().optional(),
+    SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.string().default("587"),
-    SMTP_USERNAME: z.string(),
-    SMTP_PASSWORD: z.string(),
-    SMTP_MAIL_FROM: z.string().email(),
+    SMTP_USERNAME: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
+    SMTP_MAIL_FROM: z.string().email().optional(),
     DATABASE_URL: z.string().url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -43,6 +49,10 @@ export const env = createEnv({
     AUTH_SECRET: process.env.AUTH_SECRET,
     DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
     DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
+    EMAIL_PROVIDER: process.env.EMAIL_PROVIDER,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+    AWS_REGION: process.env.AWS_REGION,
+    SES_CONFIGURATION_SET: process.env.SES_CONFIGURATION_SET,
     SMTP_HOST: process.env.SMTP_HOST,
     SMTP_PORT: process.env.SMTP_PORT,
     SMTP_USERNAME: process.env.SMTP_USERNAME,
@@ -63,3 +73,7 @@ export const env = createEnv({
    */
   emptyStringAsUndefined: true,
 })
+
+if (typeof window === "undefined" && !process.env.SKIP_ENV_VALIDATION) {
+  getMailConfiguration(env)
+}
