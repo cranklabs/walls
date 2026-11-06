@@ -1,14 +1,13 @@
 import { env } from "@/env"
 import { db } from "@/server/db"
-import {
-  deleteInviteByEmail,
-  isEmailInvited,
-  isExistingUser,
-  isInviteOnly,
-  isUserBlocked,
-  updateLastSeen,
-} from "@/server/db/queries"
+import { deleteInviteByEmail, updateLastSeen } from "@/server/db/queries"
 import * as schema from "@/server/db/schema"
+
+import {
+  createAuthAccessPolicy,
+  getDiscordProviderOptions,
+} from "./access-policy"
+import { authAccessStore } from "./access-store"
 
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
@@ -25,10 +24,26 @@ const transport = createTransport({
   },
 })
 
+const accessPolicy = createAuthAccessPolicy(authAccessStore)
+const discord = getDiscordProviderOptions(
+  {
+    clientId: env.DISCORD_CLIENT_ID,
+    clientSecret: env.DISCORD_CLIENT_SECRET,
+  },
+  accessPolicy,
+)
+export const isDiscordEnabled = Boolean(discord)
+
 async function enforceEmailSignInAccess(email: string) {
-  const normalizedEmail = email.toLowerCase()
-  const blocked = await isUserBlocked(normalizedEmail)
-  if (blocked) {
+  const normalizedEmail = email.trim().toLowerCase()
+  const error = await accessPolicy.emailAccessError(normalizedEmail)
+  if (error === "invalid_email") {
+    return new Response(
+      JSON.stringify({ error, message: "Enter a valid email address." }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    )
+  }
+  if (error === "blocked") {
     return new Response(
       JSON.stringify({
         error: "blocked",
@@ -38,14 +53,7 @@ async function enforceEmailSignInAccess(email: string) {
     )
   }
 
-  const inviteOnly = await isInviteOnly()
-  if (!inviteOnly) return
-
-  const existingUser = await isExistingUser(normalizedEmail)
-  if (existingUser) return
-
-  const invited = await isEmailInvited(normalizedEmail)
-  if (invited) return
+  if (!error) return
 
   return new Response(
     JSON.stringify({
@@ -63,6 +71,8 @@ async function enforceEmailSignInAccess(email: string) {
 export const auth = betterAuth({
   baseURL: env.APP_URL,
   secret: env.AUTH_SECRET,
+  socialProviders: discord ? { discord } : {},
+  onAPIError: { errorURL: `${env.APP_URL}/signin` },
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
@@ -105,6 +115,11 @@ export const auth = betterAuth({
   },
   account: {
     modelName: "account",
+    accountLinking: {
+      enabled: true,
+      trustedProviders: [],
+      allowDifferentEmails: false,
+    },
   },
   plugins: [
     magicLink({
@@ -133,18 +148,7 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        before: async (user) => {
-          // Magic-link signups arrive with no name. Derive a sensible default
-          // from the email prefix so the UI always has something to render.
-          const hasName =
-            typeof user.name === "string" && user.name.trim().length > 0
-          if (hasName || !user.email) {
-            return { data: user }
-          }
-          const prefix = user.email.split("@")[0] ?? ""
-          const derivedName = prefix.trim().length > 0 ? prefix : "User"
-          return { data: { ...user, name: derivedName } }
-        },
+        before: accessPolicy.beforeUserCreate,
         after: async (user) => {
           // When a new user is created via sign-up, remove them from the invite list
           if (user.email) {
@@ -155,10 +159,16 @@ export const auth = betterAuth({
     },
     session: {
       create: {
+        before: accessPolicy.beforeSessionCreate,
         after: async (session) => {
           // Update lastSeen on session creation
           void updateLastSeen(session.userId)
         },
+      },
+    },
+    account: {
+      create: {
+        before: accessPolicy.beforeAccountCreate,
       },
     },
   },

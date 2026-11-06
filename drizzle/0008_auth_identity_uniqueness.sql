@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "walls_account_provider_identity_unique_idx" ON "walls_account" USING btree ("provider_id","account_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "walls_user_email_unique_idx" ON "walls_user" USING btree (lower("email"));
