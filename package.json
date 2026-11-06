@@ -19,6 +19,8 @@
     "preview": "next build && next start",
     "start": "next start",
     "start:infisical": "infisical run --env=dev -- next start",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test:db": "node --experimental-strip-types --test tests/auth-schema.integration.mjs",
     "typecheck": "tsc --noEmit"
   },
   "overrides": {

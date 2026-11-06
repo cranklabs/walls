@@ -1,7 +1,10 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { getSession } from "@/server/auth"
+import { isDiscordEnabled } from "@/server/auth/config"
 
+import { DiscordSignInButton } from "../_components/discord-sign-in-button"
 import { MagicLinkSignInForm } from "../_components/magic-link-sign-in-form"
+import { SignInError } from "../_components/sign-in-error"
 
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -30,6 +33,9 @@ export default async function Page({
           </div>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4 px-10">
+          <SignInError
+            error={typeof params.error === "string" ? params.error : undefined}
+          />
           {sent ? (
             <>
               <p className="max-w-72 text-center text-sm text-muted-foreground">
@@ -53,6 +59,14 @@ export default async function Page({
             </>
           ) : (
             <>
+              {isDiscordEnabled && (
+                <>
+                  <DiscordSignInButton />
+                  <p className="text-xs text-muted-foreground">
+                    or sign in by email
+                  </p>
+                </>
+              )}
               <p className="max-w-72 text-center text-sm text-muted-foreground">
                 Enter your email to receive a sign-in link.
               </p>

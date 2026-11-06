@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { getSession } from "@/server/auth"
+import { isDiscordEnabled } from "@/server/auth/config"
 
+import { DiscordSignInButton } from "./_components/discord-sign-in-button"
 import { OtpSignInForm } from "./_components/email-sign-in-form"
 import { SignInError } from "./_components/sign-in-error"
 
@@ -15,7 +17,12 @@ export default async function Page({
   if (session) redirect("/")
 
   const params = await searchParams
-  const error = params.error as string | undefined
+  const error =
+    typeof params.error === "string"
+      ? params.error
+      : params.state === "state_not_found"
+        ? "state_not_found"
+        : undefined
 
   return (
     <div className="flex grow items-center justify-center">
@@ -30,6 +37,14 @@ export default async function Page({
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
           <SignInError error={error} />
+          {isDiscordEnabled && (
+            <>
+              <DiscordSignInButton />
+              <p className="text-xs text-muted-foreground">
+                or sign in by email
+              </p>
+            </>
+          )}
           <p className="text-center text-sm text-muted-foreground">
             Enter your email to receive a one-time password.
           </p>

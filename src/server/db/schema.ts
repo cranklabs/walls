@@ -1,13 +1,14 @@
-import { relations } from "drizzle-orm"
-import type { AnyPgColumn } from "drizzle-orm/pg-core"
+import { relations, sql } from "drizzle-orm"
 import {
   boolean,
+  foreignKey,
   index,
   integer,
   jsonb,
   pgTableCreator,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core"
 
@@ -15,36 +16,42 @@ export const createTable = pgTableCreator((name) => `walls_${name}`)
 
 // ── better-auth core tables ──────────────────────────────────────────
 
-export const users = createTable("user", {
-  id: varchar("id", { length: 255 }).notNull().primaryKey(),
-  name: varchar("name", { length: 255 }),
-  email: varchar("email", { length: 255 }).notNull(),
-  emailVerified: boolean("email_verified").notNull().default(false),
-  image: varchar("image", { length: 255 }),
-  createdAt: timestamp("created_at", {
-    mode: "date",
-    withTimezone: true,
-  })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", {
-    mode: "date",
-    withTimezone: true,
-  })
-    .notNull()
-    .defaultNow(),
-  // Custom fields
-  joinedAt: timestamp("joined_at", {
-    mode: "date",
-    withTimezone: true,
-  }).defaultNow(),
-  isAdmin: boolean("is_admin").notNull().default(false),
-  blocked: boolean("blocked").notNull().default(false),
-  lastSeen: timestamp("last_seen", {
-    mode: "date",
-    withTimezone: true,
-  }),
-})
+export const users = createTable(
+  "user",
+  {
+    id: varchar("id", { length: 255 }).notNull().primaryKey(),
+    name: varchar("name", { length: 255 }),
+    email: varchar("email", { length: 255 }).notNull(),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    image: varchar("image", { length: 255 }),
+    createdAt: timestamp("created_at", {
+      mode: "date",
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      mode: "date",
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+    // Custom fields
+    joinedAt: timestamp("joined_at", {
+      mode: "date",
+      withTimezone: true,
+    }).defaultNow(),
+    isAdmin: boolean("is_admin").notNull().default(false),
+    blocked: boolean("blocked").notNull().default(false),
+    lastSeen: timestamp("last_seen", {
+      mode: "date",
+      withTimezone: true,
+    }),
+  },
+  (user) => [
+    uniqueIndex("walls_user_email_unique_idx").on(sql`lower(${user.email})`),
+  ],
+)
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
@@ -120,7 +127,13 @@ export const accounts = createTable(
       .notNull()
       .defaultNow(),
   },
-  (account) => [index("account_user_id_idx").on(account.userId)],
+  (account) => [
+    index("account_user_id_idx").on(account.userId),
+    uniqueIndex("walls_account_provider_identity_unique_idx").on(
+      account.providerId,
+      account.accountId,
+    ),
+  ],
 )
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -129,8 +142,8 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 
 export const verification = createTable("verification", {
   id: varchar("id", { length: 255 }).notNull().primaryKey(),
-  identifier: varchar("identifier", { length: 255 }).notNull(),
-  value: varchar("value", { length: 255 }).notNull(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
   expiresAt: timestamp("expires_at", {
     mode: "date",
     withTimezone: true,
@@ -168,12 +181,18 @@ export const file = createTable(
     size: integer("size").notNull(),
     nsfw: integer("nsfw").notNull().default(0), // 0, 1, or 2
     publicVisibility: boolean("public_visibility").notNull().default(false),
-    parentId: integer("parent_id").references((): AnyPgColumn => file.id, {
-      onDelete: "restrict",
-    }),
+    parentId: integer("parent_id"),
     remixConfig: jsonb("remix_config"),
   },
-  (t) => [index("file_parent_id_idx").on(t.parentId)],
+  (t) => [
+    index("file_parent_id_idx").on(t.parentId),
+    // Keep the name from migration0007 so new auth migrations do not rename it.
+    foreignKey({
+      name: "walls_file_parent_id_fkey",
+      columns: [t.parentId],
+      foreignColumns: [t.id],
+    }).onDelete("restrict"),
+  ],
 )
 
 export const settings = createTable("settings", {
