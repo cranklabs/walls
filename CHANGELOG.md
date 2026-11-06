@@ -1,5 +1,19 @@
 # Changelog
 
+## Optional SES SDK transactional email
+
+- Add an explicit server-side SESv2 SDK transport shared by magic links, OTPs and
+  invitations, preserving existing content and SMTP as the backwards-compatible
+  default. Runtime-only sender/region/configuration-set and normal AWS credential
+  providers; no credentials or provider calls at build time.
+- Fail closed on bad configuration/provider errors, sanitize delivery diagnostics,
+  and avoid automatic SMTP fallback or ambiguous-send retries. Add mocked transport,
+  real Better Auth flow and official SDK serialization/signing tests with no real
+  mail/network/credentials. No schema, Discord, guest or access-policy changes.
+- Live rollout, per-app sending credentials, production access and controlled tests
+  remain separately gated. Source task: https://github.com/cranklabs/walls/issues/48.
+  Coordination: https://git.guneet.dev/guneet/workspace/issues/25.
+
 ## v1.11.0 app publication recovery
 
 - Add a manual-only, source-pinned recovery workflow that builds the approved v1.11.0 app on matching native AMD64/ARM64 GitHub runners and publishes the OCI index only after both succeed. The original AMD64 build completed while ARM64 stalled in emulated `npm ci`; retain the already-published migration image and release metadata.
