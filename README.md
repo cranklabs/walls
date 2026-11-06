@@ -148,7 +148,9 @@ Blocked users cannot create new accounts or sessions, including returning OAuth 
 
 Migration `0008_auth_identity_uniqueness` adds only unique indexes for case-folded email and `(provider_id, account_id)`, preventing concurrent sign-ins from creating duplicate identities. It does not create/drop auth tables or alter existing rows. It fails rather than silently merging/deleting any pre-existing duplicates; inspect duplicate groups and make a protected backup before an approved migration. The existing self-referencing wallpaper constraint keeps its migration-0007 name, with no unrelated constraint rewrite in 0008.
 
-A deployment still on 1.7.0 has migrations 0000–0006. Upgrading it to this branch also includes the earlier, unrelated remix migration 0007 before 0008; that app/schema upgrade or a scoped backport must be selected explicitly before rollout. OAuth application setup can be completed while the code is being tested; production stays unchanged until credentials and rollout are ready.
+Migration `0009_oauth_verification_storage` widens the existing verification `identifier` and `value` columns to `text`, preserving their contents. Better Auth's OAuth state contains callback URLs and a code verifier, so it exceeds the legacy 255-character value limit; leaving that column unchanged makes OAuth initiation fail. Tests exercise the actual Drizzle adapter against PostgreSQL, not just an in-memory schema.
+
+A deployment still on 1.7.0 has migrations 0000–0006. Upgrading it to this branch also includes the earlier, unrelated remix migration 0007 before the auth migrations 0008/0009; that app/schema upgrade or a scoped backport must be selected explicitly before rollout. OAuth application setup can be completed while the code is being tested; production stays unchanged until credentials and rollout are ready.
 
 ### Authentication tests
 

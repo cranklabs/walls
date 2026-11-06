@@ -142,8 +142,8 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 
 export const verification = createTable("verification", {
   id: varchar("id", { length: 255 }).notNull().primaryKey(),
-  identifier: varchar("identifier", { length: 255 }).notNull(),
-  value: varchar("value", { length: 255 }).notNull(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
   expiresAt: timestamp("expires_at", {
     mode: "date",
     withTimezone: true,

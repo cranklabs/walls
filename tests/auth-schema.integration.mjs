@@ -1,3 +1,11 @@
+import {
+  createAuthAccessPolicy,
+  getDiscordProviderOptions,
+} from "../src/server/auth/access-policy.ts"
+import * as schema from "../src/server/db/schema.ts"
+
+import { betterAuth } from "better-auth"
+import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import assert from "node:assert/strict"
@@ -72,6 +80,9 @@ test("compatible auth migrations preserve data and prevent duplicate identities"
     await client.query(
       "insert into walls_file(name,base64,uploaded_by,height,width,size) values ('fixture.jpeg','Zml4dHVyZQ==','original-owner',1,1,7)",
     )
+    await client.query(
+      "insert into walls_verification(id,identifier,value,expires_at) values ('preserved-verification','preserved-identifier','preserved-value',now()+interval '1 day')",
+    )
     const projection =
       "select id,name,base64,uploaded_by,height,width,size,nsfw,public_visibility,uploaded_at from walls_file order by id"
     const before = await client.query(projection)
@@ -114,6 +125,97 @@ test("compatible auth migrations preserve data and prevent duplicate identities"
         )
       ).rows[0].count,
       journal.entries.length,
+    )
+
+    const preserved = await client.query(
+      "select identifier,value from walls_verification where id='preserved-verification'",
+    )
+    assert.deepEqual(preserved.rows, [
+      { identifier: "preserved-identifier", value: "preserved-value" },
+    ])
+
+    await t.test(
+      "verification storage accepts complete OAuth state without truncation",
+      async () => {
+        const identifier = `oauth-${"x".repeat(300)}`
+        const value = JSON.stringify({
+          callbackURL: "http://localhost:3000/",
+          errorURL: "http://localhost:3000/signin",
+          codeVerifier: "v".repeat(128),
+          additionalData: "fixture".repeat(40),
+        })
+        await client.query(
+          "insert into walls_verification(id,identifier,value,expires_at) values ($1,$2,$3,now()+interval '10 minutes')",
+          ["long-oauth-fixture", identifier, value],
+        )
+        const stored = await client.query(
+          "select identifier,value from walls_verification where id=$1",
+          ["long-oauth-fixture"],
+        )
+        assert.deepEqual(stored.rows, [{ identifier, value }])
+      },
+    )
+
+    await t.test(
+      "Better Auth OAuth start writes full state through the real Drizzle adapter",
+      async () => {
+        const baseURL = "http://localhost:3000"
+        const callbackURL = `${baseURL}/?fixture=${"x".repeat(300)}`
+        const policy = createAuthAccessPolicy({
+          findUserByEmail: async () => undefined,
+          findUserById: async () => undefined,
+          findDiscordUser: async () => undefined,
+          isInviteOnly: async () => true,
+          isEmailInvited: async () => false,
+        })
+        const auth = betterAuth({
+          baseURL,
+          secret: "isolated-drizzle-oauth-fixture-secret-not-for-production",
+          database: drizzleAdapter(db, {
+            provider: "pg",
+            schema: {
+              user: schema.users,
+              session: schema.sessions,
+              account: schema.accounts,
+              verification: schema.verification,
+            },
+          }),
+          telemetry: { enabled: false },
+          logger: { disabled: true },
+          socialProviders: {
+            discord: getDiscordProviderOptions(
+              {
+                clientId: "123456789012345679",
+                clientSecret: "discord-db-fixture-secret",
+              },
+              policy,
+            ),
+          },
+        })
+        const response = await auth.handler(
+          new Request(`${baseURL}/api/auth/sign-in/social`, {
+            method: "POST",
+            headers: { "content-type": "application/json", origin: baseURL },
+            body: JSON.stringify({
+              provider: "discord",
+              callbackURL,
+              errorCallbackURL: `${baseURL}/signin`,
+            }),
+          }),
+        )
+        assert.equal(response.status, 200)
+        const body = await response.text()
+        assert.ok(!body.includes("discord-db-fixture-secret"))
+        const authorization = new URL(JSON.parse(body).url)
+        assert.equal(authorization.origin, "https://discord.com")
+        const stored = await client.query(
+          "select value from walls_verification where identifier=$1",
+          [authorization.searchParams.get("state")],
+        )
+        assert.equal(stored.rows.length, 1)
+        assert.ok(stored.rows[0].value.length > 255)
+        assert.equal(JSON.parse(stored.rows[0].value).callbackURL, callbackURL)
+      },
     )
 
     await t.test("case-folded duplicate emails are rejected", async () => {

@@ -353,4 +353,7 @@ test("existing Drizzle auth tables contain Better Auth's Discord-required column
       )
     }
   }
+  const verificationColumns = getTableColumns(schema.verification)
+  assert.equal(verificationColumns.identifier.getSQLType(), "text")
+  assert.equal(verificationColumns.value.getSQLType(), "text")
 })
