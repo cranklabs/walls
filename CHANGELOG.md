@@ -12,6 +12,7 @@
   mail/network/credentials. No schema, Discord, guest or access-policy changes.
 - Live rollout, per-app sending credentials, production access and controlled tests
   remain separately gated. Source task: https://github.com/cranklabs/walls/issues/48.
+  Implementation: https://github.com/cranklabs/walls/pull/49.
   Coordination: https://git.guneet.dev/guneet/workspace/issues/25.
 
 ## v1.11.0 app publication recovery
