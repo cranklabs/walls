@@ -1,0 +1,84 @@
+name: Recover v1.11 App Publish (Native)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: walls-app-1.11-native-recovery
+  cancel-in-progress: false
+
+env:
+  REGISTRY: cr.guneet.dev
+  SOURCE_SHA: 4a0af5a2d58bfc7eb95ddbc0449788af5b016efa
+  VERSION: 1.11.0
+
+jobs:
+  build:
+    name: Native app (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    environment: release
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - name: Verify source and native architecture
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          case "$ARCH" in
+            amd64) test "$(uname -m)" = x86_64 ;;
+            arm64) test "$(uname -m)" = aarch64 ;;
+            *) exit 1 ;;
+          esac
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: app
+          platforms: linux/${{ matrix.arch }}
+          push: true
+          build-args: BUILD_VERSION=${{ env.VERSION }}
+          tags: ${{ env.REGISTRY }}/walls/app:${{ env.VERSION }}-native-${{ matrix.arch }}
+          cache-from: type=gha,scope=app-native-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=app-native-${{ matrix.arch }}
+
+  publish-index:
+    name: Publish verified native index
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    steps:
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Publish v1.11.0 and latest after both native builds succeed
+        run: |
+          docker buildx imagetools create \
+            --tag "$REGISTRY/walls/app:$VERSION" \
+            --tag "$REGISTRY/walls/app:latest" \
+            "$REGISTRY/walls/app:$VERSION-native-amd64" \
+            "$REGISTRY/walls/app:$VERSION-native-arm64"
+          docker buildx imagetools inspect "$REGISTRY/walls/app:$VERSION"

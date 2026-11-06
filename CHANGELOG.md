@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.11.0 app publication recovery
+
+- Add a manual-only, source-pinned recovery workflow that builds the approved v1.11.0 app on matching native AMD64/ARM64 GitHub runners and publishes the OCI index only after both succeed. The original AMD64 build completed while ARM64 stalled in emulated `npm ci`; retain the already-published migration image and release metadata.
+- No application/dependency/schema/OAuth credential or production deployment changes. Source remains `4a0af5a2d58bfc7eb95ddbc0449788af5b016efa`; registry credentials still come from the `release` environment. Follow-up: https://github.com/cranklabs/walls/issues/46 and https://git.guneet.dev/guneet/workspace/issues/12.
+
 ## Discord login with compatible Better Auth accounts
 
 - Add optional server-configured Discord OAuth and sign-in actions, using the existing Better Auth integration/tables and preserved provider IDs rather than recreating users or accounts.
