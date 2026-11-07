@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-07 — deployment sender correction
+
+- Owner selected `auth@guneet.dev` instead of the earlier `no-reply` proposal and
+  requested the v1.12.0 app-only deployment. Correct the runtime example; sender
+  selection is already runtime-configured, so no code/image/schema change is needed.
+- Deployment remains blocked on the dedicated app credential and sending-access
+  prerequisites. This documentation change creates no IAM/account/credential,
+  deployment or test-email mutation. Coordination:
+  https://git.guneet.dev/guneet/workspace/issues/25 and
+  https://git.guneet.dev/infra/musashi/issues/5.
+
 ## Optional SES SDK transactional email
 
 - Add an explicit server-side SESv2 SDK transport shared by magic links, OTPs and
