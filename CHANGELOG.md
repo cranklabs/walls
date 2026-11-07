@@ -10,6 +10,7 @@
   deployment or test-email mutation. Coordination:
   https://git.guneet.dev/guneet/workspace/issues/25 and
   https://git.guneet.dev/infra/musashi/issues/5.
+  Documentation review: https://github.com/cranklabs/walls/pull/50.
 
 ## Optional SES SDK transactional email
 
