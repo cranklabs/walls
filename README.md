@@ -134,12 +134,12 @@ switched. There is no database migration or authentication-provider change.
 
 For the owner's selected Musashi integration, the non-secret runtime settings are:
 
-| Setting                 | Value                 |
-| ----------------------- | --------------------- |
-| `EMAIL_PROVIDER`        | `ses`                 |
-| `EMAIL_FROM`            | `no-reply@guneet.dev` |
-| `AWS_REGION`            | `us-east-1`           |
-| `SES_CONFIGURATION_SET` | `guneet-dev`          |
+| Setting                 | Value             |
+| ----------------------- | ----------------- |
+| `EMAIL_PROVIDER`        | `ses`             |
+| `EMAIL_FROM`            | `auth@guneet.dev` |
+| `AWS_REGION`            | `us-east-1`       |
+| `SES_CONFIGURATION_SET` | `guneet-dev`      |
 
 The SDK uses its normal server credential-provider chain (for example workload-role
 credentials, or a dedicated sending-only identity injected at runtime). Never use
