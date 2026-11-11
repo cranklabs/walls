@@ -211,7 +211,7 @@ npm run lint
 
 The isolated OAuth tests mock Discord token/profile responses and exercise Better Auth's real callback/state/session/account paths; they need no production credentials, SMTP, live Discord application or user data. PostgreSQL integration tests additionally verify upgrading the existing schema, preserving user/account/image data and enforcing identity uniqueness under concurrent inserts.
 
-`npm run test:db` requires a **new disposable local** PostgreSQL database through `TEST_DATABASE_URL`. Safety checks require a localhost host, database `walls_auth_test`, fixture user `walls_test` and fixture password `walls_test_fixture`; it refuses an existing application schema and never drops a database/schema to make the test pass. Never point it at production. The PR workflow provisions that fixture automatically. These are deliberately public test credentials, not deployment credentials.
+`npm run test:db` requires a **new disposable local** PostgreSQL database through `TEST_DATABASE_URL`. Safety checks require a localhost host, database `walls_auth_test`, fixture user `walls_test` and fixture password `walls_test_fixture`; it refuses an existing application schema and never drops a database/schema to make the test pass. Never point it at production. The CI workflow provisions that fixture automatically. These are deliberately public test credentials, not deployment credentials.
 
 ## Environment Variables
 
@@ -261,9 +261,26 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on setting up a developmen
 
 The project includes a multi-stage `Dockerfile` and GitHub Actions workflows for CI/CD:
 
-- **PR checks**: Authentication/OAuth and disposable PostgreSQL migration tests, type-checking, both Docker targets, Prettier format check, npm build.
-- **Push to main**: Semantic release; when a new release is published, build and push both images for `linux/amd64` and `linux/arm64` with `latest` and matching version tags.
-- **Manual publish**: Run the **Release & Docker Push** workflow with a `tag` (defaults to `latest`) to build and push both images with that tag without creating a release.
+- **CI** (`.github/workflows/ci.yml`): Authentication/OAuth and disposable PostgreSQL migration tests, type-checking, both Docker targets, Prettier format check, npm build and workflow lint. Runs on pull requests, on release PRs (dispatched by the release workflow) and on every release commit before publishing.
+- **Release** (`.github/workflows/release.yml`): runs [release-please](https://github.com/googleapis/release-please) on every push to `main` and publishes images when a release is created. See [Releases](#releases).
+
+There is no manual publishing path. Rolling a release out to a server is a separate deployment step.
+
+### Releases
+
+Commits on `main` (including squash-merge titles) follow [Conventional Commits](https://www.conventionalcommits.org). Configuration lives in `release-please-config.json` and `.release-please-manifest.json`, which records the current version.
+
+1. Merging a `feat:`, `fix:` or other releasable change into `main` does **not** release. release-please opens or updates a single release PR that bumps the version in `package.json`, `package-lock.json` and the manifest, and adds the generated release notes to [`CHANGELOG.md`](CHANGELOG.md). `ci:`, `docs:`, `test:` and `chore:` commits do not trigger a release.
+2. PRs created with the workflow token do not trigger `pull_request` workflows, so the release workflow dispatches CI on the release-PR branch. Wait for it to pass before merging.
+3. **Merging the release PR is the approval to release.** release-please creates the `vX.Y.Z` tag and GitHub Release on the merge commit. The release workflow then:
+   1. runs the full CI suite on that exact commit;
+   2. builds `walls/app` (with `BUILD_VERSION`) and `walls/migrate` natively on `linux/amd64` and `linux/arm64` runners, with SBOM and provenance attestations, and pushes each image by digest only;
+   3. smoke-tests those exact digests on their native runner: the migrate image applies every migration to a throwaway PostgreSQL database (and re-runs as a no-op), then the app image starts against it with placeholder configuration and must answer `/api/auth/ok` and render the home page with the release version;
+   4. only then combines the digests into multi-architecture indexes and tags them.
+
+`CHANGELOG.md` is generated: do not edit it by hand. Hand-written notes on changes and deployment coordination live in [`docs/deployment-log.md`](docs/deployment-log.md).
+
+If publishing fails, fix the cause and use **Re-run failed jobs** on the release run. A release whose run can no longer be re-run needs a reviewed, one-off workflow that republishes it from its tag.
 
 ### Container images
 
@@ -272,20 +289,22 @@ The project includes a multi-stage `Dockerfile` and GitHub Actions workflows for
 | `cr.guneet.dev/walls/app`     | Next.js application, listening on port `3000`               |
 | `cr.guneet.dev/walls/migrate` | One-shot job that runs `drizzle-kit migrate` and then exits |
 
+Each release `vX.Y.Z` publishes both images as `vX.Y.Z`, `vX.Y`, `vX` and `latest` (the aliases move only for the newest release). Releases up to `v1.12.0` were published with unprefixed tags (for example `1.12.0`); those stay in the registry, but new releases use only `v`-prefixed tags. Deployments should pin an exact version tag, preferably with its digest, never `latest` or an alias.
+
 The `app` target is the default Docker build target. Build the migration image explicitly with `docker build --target migrate .`. It includes Drizzle Kit, the migration configuration, and the committed `drizzle/` migration files; it does not need the app's auth or SMTP environment variables.
 
 ### Registry credentials
 
-Configure these secrets in the GitHub Actions **`release` environment** with credentials that can push to the `walls` namespace on `cr.guneet.dev`. All image-publishing jobs use this environment, including manual publishes:
+Configure these secrets in the GitHub Actions **`release` environment** with credentials that can push to the `walls` namespace on `cr.guneet.dev`. Only the image build and tagging jobs of the release workflow use this environment:
 
 - `DOCKER_USERNAME`: registry username.
 - `DOCKER_PASSWORD`: registry password or access token.
 
-The registry and image names are defined in `.github/workflows/push.yml`; the `DOCKER_IMAGE` and `DOCKER_MIGRATE_IMAGE` repository variables are no longer used. The workflow publishes images only; it does not connect to Tailscale or deploy to a VPS. No Tailscale or VPS/SSH credentials are required.
+The registry and image names are defined in `.github/workflows/release.yml`. The workflow publishes images only; it does not connect to Tailscale or deploy to a VPS. No Tailscale or VPS/SSH credentials are required.
 
 ### Applying migrations
 
-Before starting or updating the app, run the migration image with the **same version tag** as the app image. Provide `DATABASE_URL` for the target PostgreSQL database and, if needed, `DATABASE_SSL=true`. For example, with `WALLS_VERSION` set to a published version and `DATABASE_URL` exported in your shell:
+Before starting or updating the app, run the migration image with the **same version tag** as the app image. Provide `DATABASE_URL` for the target PostgreSQL database and, if needed, `DATABASE_SSL=true`. For example, with `WALLS_VERSION` set to a published version tag (for example `v1.13.0`) and `DATABASE_URL` exported in your shell:
 
 ```bash
 docker login cr.guneet.dev
