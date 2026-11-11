@@ -1,0 +1,340 @@
+name: Release
+
+# release-please maintains the release PR on every push to main. Merging that
+# PR creates the vX.Y.Z tag and GitHub Release; this workflow then runs the full
+# CI suite on the exact release commit, builds both images natively per
+# architecture, pushes them by digest, smoke-tests those exact digests, and only
+# then tags them. There is deliberately no manual trigger: recover a failed
+# publication with "Re-run failed jobs".
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: walls-release
+  cancel-in-progress: false
+
+env:
+  REGISTRY: cr.guneet.dev
+
+jobs:
+  release-please:
+    name: Release PR or release
+    if: github.repository == 'cranklabs/walls'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: write
+    outputs:
+      release-created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ github.token }}
+          target-branch: main
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+      # PRs created or updated with GITHUB_TOKEN do not trigger pull_request
+      # workflows, but workflow_dispatch does, so run CI on the release PR.
+      - name: Dispatch CI for the release PR
+        if: steps.release.outputs.prs_created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_PRS: ${{ steps.release.outputs.prs }}
+        run: |
+          set -euo pipefail
+          jq -r '.[].headBranchName' <<< "$RELEASE_PRS" | while read -r branch; do
+            gh workflow run ci.yml --ref "$branch"
+          done
+
+  prepare:
+    name: Resolve release
+    needs: release-please
+    if: needs.release-please.outputs.release-created == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      version: ${{ steps.resolve.outputs.version }}
+      tags: ${{ steps.resolve.outputs.tags }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate the release and compute image tags
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag }}
+          RELEASE_SHA: ${{ needs.release-please.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Expected a stable vX.Y.Z release tag, got '$RELEASE_TAG'"
+            exit 1
+          fi
+          major=${BASH_REMATCH[1]}
+          minor=${BASH_REMATCH[2]}
+          version=${RELEASE_TAG#v}
+          gh release view "$RELEASE_TAG" --json isDraft,isPrerelease \
+            --jq '(.isDraft or .isPrerelease) | not' | grep -qx true
+          if [ "$(git rev-parse "$RELEASE_TAG^{commit}")" != "$RELEASE_SHA" ] \
+            || [ "$(git rev-parse HEAD)" != "$RELEASE_SHA" ]; then
+            echo "::error::Release tag and release-please commit do not agree"
+            exit 1
+          fi
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+          if [ "$(jq -r .version package.json)" != "$version" ]; then
+            echo "::error::package.json version does not match $RELEASE_TAG"
+            exit 1
+          fi
+          tags="$RELEASE_TAG"
+          # Move the aliases only for the newest stable release, so re-running
+          # an older release never moves them backwards.
+          newest=$(git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          if [ "$newest" = "$RELEASE_TAG" ]; then
+            tags="$tags v$major.$minor"
+            if [ "$major" != 0 ]; then tags="$tags v$major"; fi
+            tags="$tags latest"
+          fi
+          {
+            echo "sha=$RELEASE_SHA"
+            echo "tag=$RELEASE_TAG"
+            echo "version=$version"
+            echo "tags=$tags"
+          } >> "$GITHUB_OUTPUT"
+
+  ci:
+    name: Full CI on the release commit
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.prepare.outputs.sha }}
+
+  build:
+    name: Build and smoke-test (${{ matrix.arch }})
+    needs: [prepare, ci]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    environment: release
+    services:
+      # Throwaway database for the smoke test only; these are not deployment
+      # credentials.
+      postgres:
+        image: postgres:17.9-alpine
+        env:
+          POSTGRES_USER: walls_smoke
+          POSTGRES_PASSWORD: walls_smoke_fixture
+          POSTGRES_DB: walls_smoke
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U walls_smoke -d walls_smoke"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ARCH: ${{ matrix.arch }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      SMOKE_DATABASE_URL: postgresql://walls_smoke:walls_smoke_fixture@127.0.0.1:5432/walls_smoke
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - name: Check native architecture and registry credentials
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          case "$ARCH" in
+            amd64) test "$(uname -m)" = x86_64 ;;
+            arm64) test "$(uname -m)" = aarch64 ;;
+            *) exit 1 ;;
+          esac
+          if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
+            echo "::error::Set DOCKER_USERNAME and DOCKER_PASSWORD in the release environment"
+            exit 1
+          fi
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      # Each platform image is pushed by digest only (no tag) so it can be
+      # smoke-tested before any tag points at it.
+      - name: Build and push app by digest
+        id: app
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: app
+          platforms: linux/${{ matrix.arch }}
+          build-args: |
+            BUILD_VERSION=${{ needs.prepare.outputs.version }}
+          labels: |
+            org.opencontainers.image.title=walls-app
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.prepare.outputs.sha }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.tag }}
+          outputs: type=image,name=${{ env.REGISTRY }}/walls/app,push-by-digest=true,name-canonical=true,push=true
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=app-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=app-${{ matrix.arch }}
+      - name: Build and push migrate by digest
+        id: migrate
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: migrate
+          platforms: linux/${{ matrix.arch }}
+          labels: |
+            org.opencontainers.image.title=walls-migrate
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.prepare.outputs.sha }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.tag }}
+          outputs: type=image,name=${{ env.REGISTRY }}/walls/migrate,push-by-digest=true,name-canonical=true,push=true
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=migrate-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=migrate-${{ matrix.arch }}
+      - name: Smoke-test the exact migrate image
+        env:
+          IMAGE: ${{ env.REGISTRY }}/walls/migrate@${{ steps.migrate.outputs.digest }}
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          docker pull --platform "linux/$ARCH" "$IMAGE"
+          test "$(docker image inspect --format '{{.Architecture}}' "$IMAGE")" = "$ARCH"
+          # Apply every migration to an empty database, then re-run to confirm
+          # an up-to-date database is a no-op.
+          for _ in 1 2; do
+            docker run --rm --network host --env DATABASE_URL="$SMOKE_DATABASE_URL" "$IMAGE"
+          done
+          expected=$(jq '.entries | length' drizzle/meta/_journal.json)
+          applied=$(docker exec "$PG_CONTAINER" psql -U walls_smoke -d walls_smoke -tAc 'select count(*) from drizzle.__drizzle_migrations')
+          if [ "$applied" != "$expected" ]; then
+            echo "::error::Expected $expected applied migrations, found $applied"
+            exit 1
+          fi
+          test "$(docker exec "$PG_CONTAINER" psql -U walls_smoke -d walls_smoke -tAc "select to_regclass('public.walls_user') is not null")" = t
+      - name: Smoke-test the exact app image
+        env:
+          IMAGE: ${{ env.REGISTRY }}/walls/app@${{ steps.app.outputs.digest }}
+        run: |
+          set -euo pipefail
+          docker pull --platform "linux/$ARCH" "$IMAGE"
+          test "$(docker image inspect --format '{{.Architecture}}' "$IMAGE")" = "$ARCH"
+          # Placeholder runtime configuration: no mail is sent and no real
+          # credentials are involved.
+          docker run --detach --name walls-smoke --network host \
+            --env APP_URL=http://127.0.0.1:3000 \
+            --env AUTH_SECRET="$(openssl rand -base64 32)" \
+            --env DATABASE_URL="$SMOKE_DATABASE_URL" \
+            --env EMAIL_FROM=smoke-test@example.com \
+            --env SMTP_HOST=127.0.0.1 \
+            --env SMTP_PORT=2525 \
+            --env SMTP_USERNAME=smoke \
+            --env SMTP_PASSWORD=smoke \
+            "$IMAGE"
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/api/auth/ok > "$RUNNER_TEMP/ok.json"; then break; fi
+            if [ "$attempt" = 60 ]; then echo "::error::App did not become ready"; exit 1; fi
+            sleep 2
+          done
+          jq -e '.ok == true' "$RUNNER_TEMP/ok.json"
+          # The home page queries the migrated database and shows the version.
+          curl -fsS -o "$RUNNER_TEMP/home.html" http://127.0.0.1:3000/
+          grep -q 'Backgrounds for your screens' "$RUNNER_TEMP/home.html"
+          grep -qF "$VERSION" "$RUNNER_TEMP/home.html"
+          test "$(docker inspect --format '{{.State.Running}}' walls-smoke)" = true
+      - name: App container logs
+        if: always()
+        run: docker logs walls-smoke || true
+      - name: Record digests
+        env:
+          APP_DIGEST: ${{ steps.app.outputs.digest }}
+          MIGRATE_DIGEST: ${{ steps.migrate.outputs.digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/digests"
+          echo "$APP_DIGEST" > "$RUNNER_TEMP/digests/app-$ARCH"
+          echo "$MIGRATE_DIGEST" > "$RUNNER_TEMP/digests/migrate-$ARCH"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+
+  publish:
+    name: Tag multi-architecture images
+    needs: [prepare, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: digests-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/digests
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Create and verify the release tags
+        env:
+          TAGS: ${{ needs.prepare.outputs.tags }}
+          SOURCE_SHA: ${{ needs.prepare.outputs.sha }}
+        run: |
+          set -euo pipefail
+          digests="$RUNNER_TEMP/digests"
+          {
+            echo "## Published images"
+            echo "Source: \`$SOURCE_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for name in app migrate; do
+            repo="$REGISTRY/walls/$name"
+            args=()
+            for tag in $TAGS; do args+=(--tag "$repo:$tag"); done
+            sources=()
+            for arch in amd64 arm64; do
+              digest=$(cat "$digests/$name-$arch")
+              [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+              sources+=("$repo@$digest")
+            done
+            docker buildx imagetools create "${args[@]}" "${sources[@]}"
+            first_tag=${TAGS%% *}
+            docker buildx imagetools inspect --raw "$repo:$first_tag" \
+              | jq -e '[.manifests[].platform | select(.os == "linux") | .architecture] | sort == ["amd64", "arm64"]'
+            index=$(docker buildx imagetools inspect --format '{{json .Manifest}}' "$repo:$first_tag" | jq -r .digest)
+            echo "- \`$repo\`: $TAGS (\`$index\`)" >> "$GITHUB_STEP_SUMMARY"
+          done
