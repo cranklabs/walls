@@ -1,10 +1,10 @@
-import { getMailConfiguration } from "../src/server/mail/config.ts"
-import { createMailSender } from "../src/server/mail/transport.ts"
-
-import { SendEmailCommand } from "@aws-sdk/client-sesv2"
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import test from "node:test"
+import { SendEmailCommand } from "@aws-sdk/client-sesv2"
+
+import { getMailConfiguration } from "../src/server/mail/config.ts"
+import { createMailSender } from "../src/server/mail/transport.ts"
 
 const smtp = {
   SMTP_HOST: "smtp.example.invalid",

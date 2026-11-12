@@ -1,5 +1,7 @@
 "use client"
 
+import type { ReactNode } from "react"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -26,8 +28,6 @@ import { Textarea } from "@/components/ui/textarea"
 import type { FontId } from "@/server/remix/font-metadata"
 import { FONTS } from "@/server/remix/font-metadata"
 import type { TextBlock } from "@/server/remix/types"
-
-import type { ReactNode } from "react"
 
 type PropertyPanelProps = {
   block: TextBlock | null

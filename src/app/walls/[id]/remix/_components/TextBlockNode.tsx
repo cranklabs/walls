@@ -1,10 +1,10 @@
 "use client"
 
-import { cn } from "@/lib/utils"
-import type { TextBlock } from "@/server/remix/types"
-
 import { useRef, useState } from "react"
 import type { MouseEvent, PointerEvent } from "react"
+
+import { cn } from "@/lib/utils"
+import type { TextBlock } from "@/server/remix/types"
 
 const FONT_SIZE_TO_HEIGHT_RATIO = 1.2
 const MIN_NODE_HEIGHT_PX = 32

@@ -1,10 +1,10 @@
 "use client"
 
-import { cn } from "@/lib/utils"
-import { setImageNsfw } from "@/server/actions/setImageNsfw"
-
 import { useState } from "react"
 import { toast } from "sonner"
+
+import { cn } from "@/lib/utils"
+import { setImageNsfw } from "@/server/actions/setImageNsfw"
 
 export function Nsfw({
   id,

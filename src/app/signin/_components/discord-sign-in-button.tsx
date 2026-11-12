@@ -1,10 +1,10 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { authClient } from "@/lib/auth-client"
-
 import { useState } from "react"
 import { FaDiscord } from "react-icons/fa"
+
+import { Button } from "@/components/ui/button"
+import { authClient } from "@/lib/auth-client"
 
 export function DiscordSignInButton() {
   const [pending, setPending] = useState(false)

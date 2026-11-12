@@ -1,8 +1,8 @@
-import { type Session, auth } from "./config"
-
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { cache } from "react"
+
+import { auth, type Session } from "./config"
 
 export { auth }
 export type { Session }

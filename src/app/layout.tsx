@@ -1,14 +1,15 @@
 import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
-import "@/styles/globals.css"
 
-import { Navbar } from "./_components/navbar"
-import { Providers } from "./_components/providers"
+import "@/styles/globals.css"
 
 import { GeistSans } from "geist/font/sans"
 import { type Metadata } from "next"
 import localFont from "next/font/local"
 import { Suspense } from "react"
+
+import { Navbar } from "./_components/navbar"
+import { Providers } from "./_components/providers"
 
 export const metadata: Metadata = {
   title: "Walls",

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { getSession } from "@/server/auth"
 import { isDiscordEnabled } from "@/server/auth/config"
@@ -5,8 +7,6 @@ import { isDiscordEnabled } from "@/server/auth/config"
 import { DiscordSignInButton } from "./_components/discord-sign-in-button"
 import { OtpSignInForm } from "./_components/email-sign-in-form"
 import { SignInError } from "./_components/sign-in-error"
-
-import { redirect } from "next/navigation"
 
 export default async function Page({
   searchParams,

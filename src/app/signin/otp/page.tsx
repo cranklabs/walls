@@ -1,9 +1,9 @@
+import { redirect } from "next/navigation"
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { getSession } from "@/server/auth"
 
 import { VerifyOtpForm } from "../_components/verify-otp-form"
-
-import { redirect } from "next/navigation"
 
 export default async function Page({
   searchParams,

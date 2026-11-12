@@ -1,10 +1,10 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
+
+import { Card } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 
 export function DarkModeToggle() {
   const { resolvedTheme, setTheme } = useTheme()

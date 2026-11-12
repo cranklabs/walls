@@ -1,3 +1,8 @@
+import { betterAuth } from "better-auth"
+import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { createAuthMiddleware } from "better-auth/api"
+import { emailOTP, magicLink } from "better-auth/plugins"
+
 import { env } from "@/env"
 import { db } from "@/server/db"
 import { deleteInviteByEmail, updateLastSeen } from "@/server/db/queries"
@@ -10,11 +15,6 @@ import {
   getDiscordProviderOptions,
 } from "./access-policy"
 import { authAccessStore } from "./access-store"
-
-import { betterAuth } from "better-auth"
-import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { createAuthMiddleware } from "better-auth/api"
-import { emailOTP, magicLink } from "better-auth/plugins"
 
 const accessPolicy = createAuthAccessPolicy(authAccessStore)
 const discord = getDiscordProviderOptions(

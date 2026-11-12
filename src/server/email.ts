@@ -1,7 +1,7 @@
 import { env } from "@/env"
 
 import { getMailConfiguration } from "./mail/config"
-import { type EmailMessage, createMailSender } from "./mail/transport"
+import { createMailSender, type EmailMessage } from "./mail/transport"
 
 let sender: ReturnType<typeof createMailSender> | undefined
 

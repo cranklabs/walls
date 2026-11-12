@@ -1,7 +1,7 @@
-import { getMailConfiguration } from "./server/mail/config"
-
 import { createEnv } from "@t3-oss/env-nextjs"
 import { z } from "zod"
+
+import { getMailConfiguration } from "./server/mail/config"
 
 export const env = createEnv({
   /**

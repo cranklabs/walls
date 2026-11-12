@@ -1,11 +1,11 @@
 "use client"
 
-import { cn } from "@/lib/utils"
-import { uploadFile } from "@/server/actions/uploadFile"
-
 import { useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
+
+import { cn } from "@/lib/utils"
+import { uploadFile } from "@/server/actions/uploadFile"
 
 export function Dropzone({ className }: { className?: string }) {
   const [uploadingFiles, setUploadingFiles] = useState<{

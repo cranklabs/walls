@@ -1,15 +1,15 @@
+import assert from "node:assert/strict"
+import test from "node:test"
+import { betterAuth } from "better-auth"
+import { memoryAdapter } from "better-auth/adapters/memory"
+import { getAuthTables } from "better-auth/db"
+import { getTableColumns } from "drizzle-orm"
+
 import {
   createAuthAccessPolicy,
   getDiscordProviderOptions,
 } from "../src/server/auth/access-policy.ts"
 import * as schema from "../src/server/db/schema.ts"
-
-import { betterAuth } from "better-auth"
-import { memoryAdapter } from "better-auth/adapters/memory"
-import { getAuthTables } from "better-auth/db"
-import { getTableColumns } from "drizzle-orm"
-import assert from "node:assert/strict"
-import test from "node:test"
 
 const baseURL = "http://localhost:3000"
 const discordId = "123456789012345678"

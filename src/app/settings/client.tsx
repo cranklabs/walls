@@ -1,5 +1,10 @@
 "use client"
 
+import moment from "moment"
+import dynamic from "next/dynamic"
+import { useState } from "react"
+import { toast } from "sonner"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,11 +26,6 @@ import type {
   getInviteRequests,
 } from "@/server/db/queries"
 import type { _getSettings } from "@/server/settings"
-
-import moment from "moment"
-import dynamic from "next/dynamic"
-import { useState } from "react"
-import { toast } from "sonner"
 
 const DarkModeToggle = dynamic(
   () => import("./dark-mode-toggle").then((mod) => mod.DarkModeToggle),

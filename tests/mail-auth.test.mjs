@@ -1,3 +1,10 @@
+import assert from "node:assert/strict"
+import test from "node:test"
+import { SESv2Client } from "@aws-sdk/client-sesv2"
+import { betterAuth } from "better-auth"
+import { memoryAdapter } from "better-auth/adapters/memory"
+import { emailOTP, magicLink } from "better-auth/plugins"
+
 import { getMailConfiguration } from "../src/server/mail/config.ts"
 import {
   inviteMessage,
@@ -5,13 +12,6 @@ import {
   otpMessage,
 } from "../src/server/mail/messages.ts"
 import { createMailSender } from "../src/server/mail/transport.ts"
-
-import { SESv2Client } from "@aws-sdk/client-sesv2"
-import { betterAuth } from "better-auth"
-import { memoryAdapter } from "better-auth/adapters/memory"
-import { emailOTP, magicLink } from "better-auth/plugins"
-import assert from "node:assert/strict"
-import test from "node:test"
 
 const config = getMailConfiguration({
   EMAIL_PROVIDER: "ses",

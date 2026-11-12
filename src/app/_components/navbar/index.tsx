@@ -1,9 +1,3 @@
-import { Button } from "@/components/ui/button"
-import { env } from "@/env"
-import { getSession } from "@/server/auth"
-
-import { ThemeToggle } from "./theme-toggle"
-
 import Image from "next/image"
 import Link from "next/link"
 import {
@@ -12,6 +6,12 @@ import {
   PiGithubLogo,
   PiGithubLogoDuotone,
 } from "react-icons/pi"
+
+import { Button } from "@/components/ui/button"
+import { env } from "@/env"
+import { getSession } from "@/server/auth"
+
+import { ThemeToggle } from "./theme-toggle"
 
 export async function Navbar() {
   const session = await getSession()

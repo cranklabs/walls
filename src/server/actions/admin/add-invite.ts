@@ -1,5 +1,7 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
+
 import { getSession } from "@/server/auth"
 import {
   addInviteEmail,
@@ -7,8 +9,6 @@ import {
   isExistingUser,
 } from "@/server/db/queries"
 import { sendInviteEmail } from "@/server/mail"
-
-import { revalidatePath } from "next/cache"
 
 export async function addInvite(email: string): Promise<{
   success: boolean

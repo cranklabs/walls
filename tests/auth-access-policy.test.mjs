@@ -1,10 +1,10 @@
+import assert from "node:assert/strict"
+import test from "node:test"
+
 import {
   createAuthAccessPolicy,
   getDiscordProviderOptions,
 } from "../src/server/auth/access-policy.ts"
-
-import assert from "node:assert/strict"
-import test from "node:test"
 
 function fixture({
   users = [],

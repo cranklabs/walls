@@ -1,5 +1,9 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
+import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { RemixConfig, TextBlock } from "@/server/remix/types"
@@ -7,10 +11,6 @@ import type { RemixConfig, TextBlock } from "@/server/remix/types"
 import { Canvas } from "./Canvas"
 import { PropertyPanel } from "./PropertyPanel"
 import { SaveBar } from "./SaveBar"
-
-import { useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
-import { toast } from "sonner"
 
 type RemixEditorProps = {
   sourceId: number
