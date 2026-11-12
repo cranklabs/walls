@@ -1,13 +1,13 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
+
 import {
   createInviteRequest,
   hasExistingRequest,
   isEmailInvited,
   isExistingUser,
 } from "@/server/db/queries"
-
-import { revalidatePath } from "next/cache"
 
 export async function requestInvite(email: string): Promise<{
   success: boolean

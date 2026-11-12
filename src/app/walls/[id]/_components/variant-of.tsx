@@ -1,6 +1,6 @@
-import { badgeVariants } from "@/components/ui/badge"
-
 import Link from "next/link"
+
+import { badgeVariants } from "@/components/ui/badge"
 
 export function VariantOf({
   parentId,

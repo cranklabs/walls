@@ -1,9 +1,9 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
+
 import { getSession } from "@/server/auth"
 import { getAppSetting, setAppSetting } from "@/server/db/queries"
-
-import { revalidatePath } from "next/cache"
 
 export async function toggleGuestViewing(): Promise<{
   success: boolean

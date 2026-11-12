@@ -1,11 +1,11 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+import { IoIosArrowBack } from "react-icons/io"
+
 import { cn } from "@/lib/utils"
 
 import { Button } from "./ui/button"
-
-import { useRouter } from "next/navigation"
-import { IoIosArrowBack } from "react-icons/io"
 
 export function Back({ className }: { className?: string }) {
   const router = useRouter()

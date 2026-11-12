@@ -1,9 +1,9 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
+
 import { getSession } from "@/server/auth"
 import { deleteInviteRequest } from "@/server/db/queries"
-
-import { revalidatePath } from "next/cache"
 
 export async function denyRequest(id: number): Promise<{
   success: boolean

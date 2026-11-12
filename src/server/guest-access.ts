@@ -1,7 +1,7 @@
+import { redirect } from "next/navigation"
+
 import { getSession } from "@/server/auth"
 import { isGuestViewingAllowed } from "@/server/db/queries"
-
-import { redirect } from "next/navigation"
 
 /**
  * Checks if the current request should be allowed to proceed based on

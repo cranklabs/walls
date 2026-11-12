@@ -1,11 +1,11 @@
 "use client"
 
+import Link from "next/link"
+import { useState } from "react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { requestInvite } from "@/server/actions/request-invite"
-
-import Link from "next/link"
-import { useState } from "react"
 
 export function RequestAccessForm({
   initialEmail,

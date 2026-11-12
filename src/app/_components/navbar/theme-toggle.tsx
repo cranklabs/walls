@@ -1,10 +1,10 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-
 import { useTheme } from "next-themes"
 import { PiMoon, PiMoonDuotone, PiSun, PiSunDuotone } from "react-icons/pi"
+
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 export function ThemeToggle() {
   const { setTheme } = useTheme()

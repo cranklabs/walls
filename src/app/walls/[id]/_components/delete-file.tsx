@@ -1,5 +1,10 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { MdDelete } from "react-icons/md"
+import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,11 +15,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { deleteFile } from "@/server/actions/deleteFile"
-
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { MdDelete } from "react-icons/md"
-import { toast } from "sonner"
 
 export function DeleteFile({ id }: { id: number }) {
   const router = useRouter()

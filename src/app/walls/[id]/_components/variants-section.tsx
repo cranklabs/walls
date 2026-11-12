@@ -1,6 +1,6 @@
-import { OptimizedImage } from "@/components/optimized-image"
-
 import Link from "next/link"
+
+import { OptimizedImage } from "@/components/optimized-image"
 
 type Descendant = {
   id: number

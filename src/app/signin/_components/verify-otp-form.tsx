@@ -1,5 +1,9 @@
 "use client"
 
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState, type ComponentProps } from "react"
+
 import { Button } from "@/components/ui/button"
 import {
   InputOTP,
@@ -7,10 +11,6 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 import { authClient } from "@/lib/auth-client"
-
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { type ComponentProps, useState } from "react"
 
 export function VerifyOtpForm({ email }: { email: string }) {
   const [otp, setOtp] = useState("")

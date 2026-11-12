@@ -1,13 +1,3 @@
-import {
-  createAuthAccessPolicy,
-  getDiscordProviderOptions,
-} from "../src/server/auth/access-policy.ts"
-import * as schema from "../src/server/db/schema.ts"
-
-import { betterAuth } from "better-auth"
-import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { drizzle } from "drizzle-orm/node-postgres"
-import { migrate } from "drizzle-orm/node-postgres/migrator"
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { existsSync } from "node:fs"
@@ -23,7 +13,17 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import test from "node:test"
 import { fileURLToPath } from "node:url"
+import { betterAuth } from "better-auth"
+import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { drizzle } from "drizzle-orm/node-postgres"
+import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pg from "pg"
+
+import {
+  createAuthAccessPolicy,
+  getDiscordProviderOptions,
+} from "../src/server/auth/access-policy.ts"
+import * as schema from "../src/server/db/schema.ts"
 
 const root = fileURLToPath(new URL("../", import.meta.url))
 

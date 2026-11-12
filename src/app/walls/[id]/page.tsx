@@ -1,3 +1,8 @@
+import Image from "next/image"
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import prettyBytes from "pretty-bytes"
+
 import { Back } from "@/components/back"
 import { OptimizedImage } from "@/components/optimized-image"
 import { Badge } from "@/components/ui/badge"
@@ -13,11 +18,6 @@ import { RemixButton } from "./_components/remix-button"
 import { RenameFile } from "./_components/rename-file"
 import { VariantOf } from "./_components/variant-of"
 import { VariantsSection } from "./_components/variants-section"
-
-import Image from "next/image"
-import Link from "next/link"
-import { notFound } from "next/navigation"
-import prettyBytes from "pretty-bytes"
 
 export default async function Page({
   params,

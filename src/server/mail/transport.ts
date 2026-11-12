@@ -1,7 +1,7 @@
-import type { MailConfiguration } from "./config"
-
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2"
+import { SendEmailCommand, SESv2Client } from "@aws-sdk/client-sesv2"
 import { createTransport } from "nodemailer"
+
+import type { MailConfiguration } from "./config"
 
 export interface EmailMessage {
   to: string

@@ -1,12 +1,12 @@
 "use client"
 
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState, type ComponentProps } from "react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
-
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { type ComponentProps, useState } from "react"
 
 export function OtpSignInForm() {
   const [email, setEmail] = useState("")

@@ -1,10 +1,10 @@
+import { and, eq, sql } from "drizzle-orm"
+
 import { db } from "@/server/db"
 import { isEmailInvited, isInviteOnly } from "@/server/db/queries"
 import { accounts, users } from "@/server/db/schema"
 
 import type { AuthAccessStore } from "./access-policy"
-
-import { and, eq, sql } from "drizzle-orm"
 
 const authUserFields = {
   id: users.id,

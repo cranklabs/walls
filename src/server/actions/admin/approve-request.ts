@@ -1,10 +1,10 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
+
 import { getSession } from "@/server/auth"
 import { addInviteEmail, deleteInviteRequest } from "@/server/db/queries"
 import { sendInviteEmail } from "@/server/mail"
-
-import { revalidatePath } from "next/cache"
 
 export async function approveRequest(id: number): Promise<{
   success: boolean

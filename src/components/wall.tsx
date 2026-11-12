@@ -1,10 +1,10 @@
 "use client"
 
-import { OptimizedImage } from "@/components/optimized-image"
-import { cn } from "@/lib/utils"
-
 import Link from "next/link"
 import { useMemo, useState } from "react"
+
+import { OptimizedImage } from "@/components/optimized-image"
+import { cn } from "@/lib/utils"
 
 export function Wall({
   images,

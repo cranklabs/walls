@@ -1,5 +1,9 @@
 "use client"
 
+import { useState } from "react"
+import { MdEdit } from "react-icons/md"
+import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -11,10 +15,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { renameFile } from "@/server/actions/renameFile"
-
-import { useState } from "react"
-import { MdEdit } from "react-icons/md"
-import { toast } from "sonner"
 
 function basename(name: string) {
   return name.split(".").slice(0, -1).join(".")

@@ -1,11 +1,11 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { clientOS } from "@/lib/client"
-
 import { CgSpinnerTwo } from "react-icons/cg"
 import { ImCommand, ImCtrl } from "react-icons/im"
 import { MdKeyboardReturn } from "react-icons/md"
+
+import { Button } from "@/components/ui/button"
+import { clientOS } from "@/lib/client"
 
 export function UploadButton({
   onClick,

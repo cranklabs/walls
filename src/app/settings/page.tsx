@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+
 import { getSession } from "@/server/auth"
 import {
   getAllUsers,
@@ -8,8 +10,6 @@ import {
 import { _getSettings } from "@/server/settings"
 
 import { Settings } from "./client"
-
-import { redirect } from "next/navigation"
 
 export default async function Page() {
   const session = await getSession()

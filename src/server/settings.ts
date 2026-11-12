@@ -1,8 +1,8 @@
+import { count, eq } from "drizzle-orm"
+
 import { getSession } from "./auth"
 import { db } from "./db"
 import { settings } from "./db/schema"
-
-import { count, eq } from "drizzle-orm"
 
 /**
  * INTERNAL

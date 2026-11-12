@@ -1,12 +1,12 @@
 "use server"
 
+import { eq } from "drizzle-orm"
+import { revalidatePath } from "next/cache"
+
 import { getSession } from "@/server/auth"
 import { db } from "@/server/db"
 import { deleteUserSessions } from "@/server/db/queries"
 import { users } from "@/server/db/schema"
-
-import { eq } from "drizzle-orm"
-import { revalidatePath } from "next/cache"
 
 export async function toggleUserBlocked(userId: string): Promise<{
   success: boolean

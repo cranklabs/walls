@@ -1,11 +1,11 @@
 "use server"
 
+import { eq } from "drizzle-orm"
+import { revalidatePath } from "next/cache"
+
 import { getSession } from "@/server/auth"
 import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
-
-import { eq } from "drizzle-orm"
-import { revalidatePath } from "next/cache"
 
 export async function toggleUserAdmin(userId: string): Promise<{
   success: boolean

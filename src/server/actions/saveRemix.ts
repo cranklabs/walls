@@ -1,5 +1,11 @@
 "use server"
 
+import path from "path"
+import { Resvg } from "@resvg/resvg-js"
+import { eq } from "drizzle-orm"
+import { revalidatePath } from "next/cache"
+import sharp from "sharp"
+
 import { getSession } from "../auth"
 import { db } from "../db"
 import { existsFileName, getImage, getImageMd, insertFile } from "../db/queries"
@@ -7,16 +13,10 @@ import { file } from "../db/schema"
 import { FONTS } from "../remix/font-metadata"
 import { buildRemixSvg } from "../remix/svg"
 import {
-  type RemixConfig,
   RemixConfigSchema,
+  type RemixConfig,
   type TextBlock,
 } from "../remix/types"
-
-import { Resvg } from "@resvg/resvg-js"
-import { eq } from "drizzle-orm"
-import { revalidatePath } from "next/cache"
-import path from "path"
-import sharp from "sharp"
 
 const FONT_FILES = [
   ...FONTS.map((f) => path.join(process.cwd(), "fonts", f.serverFile)),
@@ -37,8 +37,7 @@ function rasterizeSvg(svg: string, width: number): Buffer {
 }
 
 type SaveRemixResult =
-  | { status: "success"; fileId: number }
-  | { status: "error"; message: string }
+  { status: "success"; fileId: number } | { status: "error"; message: string }
 
 function blockBoundingBox(
   block: TextBlock,

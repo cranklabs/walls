@@ -1,10 +1,10 @@
+import { notFound, redirect } from "next/navigation"
+
 import { getSession } from "@/server/auth"
 import { getImageMd } from "@/server/db/queries"
 import { ensureGuestAccessOrAuth } from "@/server/guest-access"
 
 import { RemixEditor } from "./_components/RemixEditor"
-
-import { notFound, redirect } from "next/navigation"
 
 export default async function Page({
   params,
