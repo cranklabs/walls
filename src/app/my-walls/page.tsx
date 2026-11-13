@@ -13,12 +13,14 @@ export default async function Page() {
   return (
     <div>
       <div className="mb-8 bg-neutral-200 py-10 text-center dark:bg-neutral-800">
-        <h1 className="font-clash text-6xl font-bold uppercase">My Walls</h1>
+        <h1 className="font-clash text-5xl font-bold uppercase sm:text-6xl">
+          My Walls
+        </h1>
         <p className="font-clash text-xl">
           You have {uploads.length} backgrounds
         </p>
       </div>
-      <div className="mx-auto flex w-4/5 flex-col gap-8">
+      <div className="mx-auto flex w-full flex-col gap-8 px-4 md:w-4/5 md:px-0">
         <Dropzone />
         <InputUrl />
         <Wall images={uploads} />

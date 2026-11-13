@@ -79,7 +79,7 @@ export function Dropzone({ className }: { className?: string }) {
     <div
       {...getRootProps()}
       className={cn(
-        "flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-400 bg-neutral-100 transition-colors hover:bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:hover:bg-neutral-800",
+        "flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-400 bg-neutral-100 px-4 text-center transition-colors hover:bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:hover:bg-neutral-800",
         className,
       )}
     >
