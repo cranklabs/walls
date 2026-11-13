@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.2](https://github.com/cranklabs/walls/compare/v1.12.1...v1.12.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* mobile layout of admin settings and the remix editor ([#58](https://github.com/cranklabs/walls/issues/58)) ([6a382d9](https://github.com/cranklabs/walls/commit/6a382d95970343d04789edea1bc37d8f8a4649b4)), closes [#57](https://github.com/cranklabs/walls/issues/57)
+
 ## [1.12.1](https://github.com/cranklabs/walls/compare/v1.12.0...v1.12.1) (2026-11-13)
 
 
