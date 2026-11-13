@@ -133,17 +133,17 @@ export function RemixEditor({
   }
 
   return (
-    <main className="flex min-h-0 flex-grow flex-col gap-4 bg-background p-4">
-      <section className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-col gap-1">
+    <main className="flex flex-grow flex-col gap-4 bg-background p-4 lg:min-h-0">
+      <section className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Remix editor
           </p>
-          <h1 className="font-clash text-3xl font-bold uppercase leading-none md:text-4xl">
+          <h1 className="break-words font-clash text-2xl font-bold uppercase leading-none sm:text-3xl md:text-4xl">
             {sourceName}
           </h1>
         </div>
-        <div className="flex flex-col gap-2 md:min-w-96 md:flex-row md:items-center">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center lg:min-w-96 lg:shrink-0">
           <Button type="button" onClick={addTextBlock}>
             Add Text
           </Button>
@@ -155,10 +155,10 @@ export function RemixEditor({
         </div>
       </section>
 
-      <section className="grid min-h-0 flex-grow gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <section className="grid flex-grow gap-4 lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div
           id="canvas-placeholder"
-          className="flex min-h-96 flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 shadow"
+          className="flex flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 shadow lg:min-h-96"
           data-source-id={sourceId}
           data-source-name={sourceName}
           data-source-width={sourceWidth}
@@ -167,19 +167,19 @@ export function RemixEditor({
           data-selected-block-id={selectedBlockId ?? ""}
         >
           <div className="flex items-center justify-between gap-2">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Canvas
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="break-all text-sm text-muted-foreground">
                 Preview source: /uploads/{sourceName}
               </p>
             </div>
-            <div className="rounded-md bg-secondary px-2 py-1 text-xs font-semibold text-secondary-foreground">
+            <div className="shrink-0 rounded-md bg-secondary px-2 py-1 text-xs font-semibold text-secondary-foreground">
               {sourceWidth}×{sourceHeight}
             </div>
           </div>
-          <div className="flex flex-grow items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted p-2">
+          <div className="flex flex-grow items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted p-2 [--canvas-max-h:60vh] lg:[--canvas-max-h:calc(100vh-24rem)]">
             <Canvas
               sourceName={sourceName}
               sourceWidth={sourceWidth}

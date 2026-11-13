@@ -246,7 +246,7 @@ export function PropertyPanel({
 }: PropertyPanelProps) {
   if (block === null) {
     return (
-      <aside className="flex min-h-64 flex-col justify-center rounded-xl border bg-card p-4 text-card-foreground shadow">
+      <aside className="flex flex-col justify-center rounded-xl border bg-card p-4 text-card-foreground shadow lg:min-h-64">
         <p className="text-sm text-muted-foreground">Select a block to edit</p>
       </aside>
     )
@@ -276,7 +276,7 @@ function PropertyPanelBody({
   const hasBackdrop = block.backdrop.enabled
 
   return (
-    <aside className="flex max-h-[calc(100vh-10rem)] min-h-64 flex-col gap-4 overflow-y-auto rounded-xl border bg-card p-4 text-card-foreground shadow">
+    <aside className="flex flex-col gap-4 rounded-xl border bg-card p-4 text-card-foreground shadow lg:max-h-[calc(100vh-10rem)] lg:min-h-64 lg:overflow-y-auto">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Properties
