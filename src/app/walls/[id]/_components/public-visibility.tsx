@@ -25,7 +25,7 @@ export function PublicVisibility({
     >
       <div className="text-sm font-semibold">Visibility</div>
       <div
-        className="relative h-6 w-16 cursor-pointer select-none overflow-hidden rounded-md bg-neutral-200 px-2 py-1 text-center text-xs uppercase transition-colors hover:bg-neutral-300 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+        className="relative h-6 w-16 shrink-0 cursor-pointer select-none overflow-hidden rounded-md bg-neutral-200 px-2 py-1 text-center text-xs uppercase transition-colors hover:bg-neutral-300 dark:bg-neutral-800 dark:hover:bg-neutral-700"
         onClick={async () => {
           if (submitting) return
           setSubmitting(true)

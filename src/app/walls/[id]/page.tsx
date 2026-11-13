@@ -42,25 +42,21 @@ export default async function Page({
 
   return (
     <div className="flex flex-grow flex-col gap-4 p-2 px-4 md:mx-auto md:w-[90%] md:justify-center md:p-0">
-      <div className="grid grid-cols-3 grid-rows-2 gap-2 md:flex">
-        <Back className="col-start-1 row-start-1 w-full md:mr-auto md:w-fit" />
-        {session && !session.user.blocked && <RemixButton id={image.id} />}
+      <div className="grid grid-cols-2 gap-2 md:flex">
+        <Back className="w-full md:mr-auto md:w-fit" />
+        {session && !session.user.blocked && (
+          <RemixButton id={image.id} className="w-full md:w-fit" />
+        )}
         {isOwner || isAdmin ? (
           <>
             <PublicVisibility
               id={image.id}
               publicVisibility={image.publicVisibility}
-              className="col-start-2 row-start-1 w-full md:w-fit"
+              className="w-full md:w-fit"
             />
-            <Nsfw
-              id={image.id}
-              nsfw={image.nsfw}
-              className="col-start-3 row-start-1 w-full md:w-fit"
-            />
-            <div className="col-span-3 row-start-2 flex justify-end gap-2 *:grow">
-              <RenameFile id={image.id} name={image.name} />
-              <DeleteFile id={image.id} />
-            </div>
+            <Nsfw id={image.id} nsfw={image.nsfw} className="w-full md:w-fit" />
+            <RenameFile id={image.id} name={image.name} />
+            <DeleteFile id={image.id} />
           </>
         ) : null}
       </div>
@@ -72,14 +68,14 @@ export default async function Page({
           />
         </div>
       ) : null}
-      <div className="text-center">{image.name}</div>
+      <div className="break-all text-center">{image.name}</div>
       <OptimizedImage
         name={image.name}
         width={1920}
         height={800}
-        className="mx-auto my-auto max-h-[60vh] max-w-[80vw] object-contain md:my-0"
+        className="mx-auto max-h-[60vh] w-auto max-w-full object-contain md:max-w-[80vw]"
       />
-      <div className="md:grid-rows-0 grid grid-cols-2 grid-rows-2 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <div className="col-span-2 row-start-2 flex items-center justify-between gap-4 md:col-span-1 md:row-start-1 md:justify-normal">
           <a
             href={`/uploads/${image.name}`}
@@ -98,17 +94,17 @@ export default async function Page({
             </Button>
           </a>
         </div>
-        <div className="row-start-1 flex items-center justify-end gap-2 md:justify-center">
+        <div className="row-start-1 flex items-center gap-2 whitespace-nowrap md:justify-center">
           <Badge>
             {image.width}x{image.height}
           </Badge>
           <Badge>{prettyBytes(image.size)}</Badge>
         </div>
-        <div className="flex items-center gap-4">
-          <p className="ml-auto hidden md:block">Uploaded by</p>
+        <div className="flex min-w-0 items-center justify-end gap-4">
+          <p className="hidden shrink-0 md:block">Uploaded by</p>
           <Link
             href={`/profile/${image.uploader.id}`}
-            className="flex items-center gap-2 rounded-lg bg-neutral-100 px-2 py-1 dark:bg-neutral-900"
+            className="flex min-w-0 items-center gap-2 rounded-lg bg-neutral-100 px-2 py-1 dark:bg-neutral-900"
           >
             {image.uploader.image ? (
               <Image
@@ -116,10 +112,12 @@ export default async function Page({
                 alt={image.uploader.name ?? ""}
                 width={24}
                 height={24}
-                className="rounded-full"
+                className="shrink-0 rounded-full"
               />
             ) : null}
-            <p>{image.uploader.name}</p>
+            <p className="truncate" title={image.uploader.name ?? undefined}>
+              {image.uploader.name}
+            </p>
           </Link>
         </div>
       </div>

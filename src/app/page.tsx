@@ -26,7 +26,7 @@ export default async function Page({
         <h1 className="font-clash text-6xl font-bold uppercase">Walls</h1>
         <h2 className="font-clash text-xl">Backgrounds for your screens</h2>
       </div>
-      <div className="mx-auto w-4/5">
+      <div className="mx-auto w-full px-4 md:w-4/5 md:px-0">
         <Wall images={images} />
       </div>
     </div>
