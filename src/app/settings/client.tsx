@@ -52,10 +52,10 @@ export function Settings({
   adminData: AdminData | null
 }) {
   return (
-    <div className="mx-auto w-4/5">
+    <div className="mx-auto w-full px-4 md:w-4/5 md:px-0">
       <div className="font-clash text-4xl font-bold">Settings</div>
       <Card className="mt-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <div className="font-semibold">Self Absorbed Mode</div>
             <div className="text-sm text-neutral-400">
@@ -100,7 +100,7 @@ function AdminSettings({
         App Settings
       </div>
       <Card className="mt-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <div className="font-semibold">Invite-Only Mode</div>
             <div className="text-sm text-neutral-400">
@@ -121,7 +121,7 @@ function AdminSettings({
         </div>
       </Card>
       <Card className="mt-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <div className="font-semibold">Allow Guest Viewing</div>
             <div className="text-sm text-neutral-400">
@@ -208,10 +208,12 @@ function InviteSection({ invites }: { invites: AdminData["invites"] }) {
             {invites.map((inv) => (
               <div
                 key={inv.id}
-                className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                className="flex items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
               >
-                <div className="flex flex-col">
-                  <div className="text-sm font-medium">{inv.email}</div>
+                <div className="flex min-w-0 flex-col">
+                  <div className="break-all text-sm font-medium">
+                    {inv.email}
+                  </div>
                   <div className="text-xs text-neutral-400">
                     Invited by {inv.inviterName ?? "Unknown"} on{" "}
                     {inv.invitedAt.toLocaleDateString()}
@@ -220,7 +222,7 @@ function InviteSection({ invites }: { invites: AdminData["invites"] }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-red-500 hover:text-red-600"
+                  className="shrink-0 text-red-500 hover:text-red-600"
                   onClick={async () => {
                     const resp = await removeInvite(inv.id)
                     if (resp.success) {
@@ -269,15 +271,15 @@ function AccessRequests({
         {requests.map((req) => (
           <div
             key={req.id}
-            className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+            className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div className="flex flex-col">
-              <div className="text-sm font-medium">{req.email}</div>
+            <div className="flex min-w-0 flex-col">
+              <div className="break-all text-sm font-medium">{req.email}</div>
               <div className="text-xs text-neutral-400">
                 Requested {moment(req.requestedAt).fromNow()}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <Button
                 size="sm"
                 onClick={async () => {
@@ -329,17 +331,17 @@ function UserManagement({
           return (
             <div
               key={user.id}
-              className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+              className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
             >
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={user.image ?? undefined} />
                   <AvatarFallback>
                     {(user.name ?? user.email)?.[0]?.toUpperCase() ?? "?"}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-col">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="text-sm font-medium">
                       {user.name ?? "Unnamed"}
                     </span>
@@ -354,16 +356,16 @@ function UserManagement({
                     {isSelf && <Badge variant="outline">you</Badge>}
                   </div>
                   <div className="text-xs text-neutral-400">
-                    {user.email} · {user.wallCount}{" "}
-                    {user.wallCount === 1 ? "wall" : "walls"} · Joined{" "}
-                    {user.joinedAt?.toLocaleDateString() ?? "unknown"} · Last
-                    seen{" "}
+                    <span className="break-all">{user.email}</span> ·{" "}
+                    {user.wallCount} {user.wallCount === 1 ? "wall" : "walls"} ·
+                    Joined {user.joinedAt?.toLocaleDateString() ?? "unknown"} ·
+                    Last seen{" "}
                     {user.lastSeen ? moment(user.lastSeen).fromNow() : "never"}
                   </div>
                 </div>
               </div>
               {!isSelf && (
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2 pl-11 sm:pl-0">
                   <Button
                     variant="ghost"
                     size="sm"

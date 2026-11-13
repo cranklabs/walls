@@ -45,7 +45,10 @@ export function Canvas({
   return (
     <div
       className="relative w-full overflow-hidden rounded-lg border bg-muted shadow-inner"
-      style={{ paddingBottom: `${(sourceHeight / sourceWidth) * 100}%` }}
+      style={{
+        aspectRatio: `${sourceWidth} / ${sourceHeight}`,
+        maxWidth: `calc(var(--canvas-max-h, 100vh) * ${sourceWidth / sourceHeight})`,
+      }}
       onClick={() => onSelect(null)}
     >
       <img
