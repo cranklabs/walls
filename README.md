@@ -9,6 +9,7 @@ Beautiful backgrounds for your screens. A wallpaper sharing platform built with 
 - NSFW content filtering (None / Mild / All)
 - Discord OAuth sign-in using a verified Discord email, with existing-account linking
 - Email OTP and magic link authentication (passwordless)
+- Optional password sign-in for existing members, with emailed reset links
 - User profiles and personal wallpaper collections
 - Invite-only mode with access request flow
 - Admin mode for managing users, invites, and wallpapers
@@ -18,7 +19,7 @@ Beautiful backgrounds for your screens. A wallpaper sharing platform built with 
 
 - [Next.js 16](https://nextjs.org) (App Router, Server Components, Server Actions)
 - [React 19](https://react.dev)
-- [better-auth](https://www.better-auth.com) (magic link email authentication)
+- [better-auth](https://www.better-auth.com) (email OTP, magic link, password and Discord authentication)
 - [Drizzle ORM](https://orm.drizzle.team) + PostgreSQL
 - [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com)
 - [Sharp](https://sharp.pixelplumbing.com) for image processing
@@ -201,6 +202,16 @@ Migration `0009_oauth_verification_storage` widens the existing verification `id
 
 A deployment still on 1.7.0 has migrations 0000–0006. Upgrading it to this branch also includes the earlier, unrelated remix migration 0007 before the auth migrations 0008/0009; that app/schema upgrade or a scoped backport must be selected explicitly before rollout. OAuth application setup can be completed while the code is being tested; production stays unchanged until credentials and rollout are ready.
 
+### Password sign-in
+
+Members can add a password in **Settings** after signing in with an email code, magic link or Discord, then sign in at `/signin/password`. Email+password **sign-up is disabled**: a password never creates an account, so invite-only admission and blocking work exactly as for the other methods.
+
+- Passwords are 8–128 characters and stored only as Better Auth scrypt hashes in the existing `walls_account.password` column, as a `credential` account. There is **no database migration** and no new environment variable.
+- Changing a password requires the current one and can sign out other devices. Setting or changing a password needs a recent sign-in (Better Auth's one-day freshness window).
+- **Forgot password** (`/signin/forgot-password`) emails a one-hour, single-use reset link through the configured sender (SMTP or SES). The response is the same whether or not the email has an account. Completing a reset signs the member out everywhere. A reset can also set a first password for a member who has none.
+- Blocked members cannot sign in with a password and are not sent reset emails. Wrong passwords, unknown emails and members without a password all get the same "Incorrect email or password" response.
+- In production Better Auth rate-limits per client IP: 3 sign-in or password-change attempts per 10 seconds and 3 reset emails per minute. It uses the first `X-Forwarded-For` address, so run Walls behind a proxy that sets that header itself.
+
 ### Authentication tests
 
 ```bash
@@ -209,7 +220,7 @@ npm run typecheck
 npm run lint
 ```
 
-The isolated OAuth tests mock Discord token/profile responses and exercise Better Auth's real callback/state/session/account paths; they need no production credentials, SMTP, live Discord application or user data. PostgreSQL integration tests additionally verify upgrading the existing schema, preserving user/account/image data and enforcing identity uniqueness under concurrent inserts.
+The isolated OAuth and password tests mock Discord token/profile responses and email delivery, and exercise Better Auth's real callback/state/session/account, sign-in, password-change and reset paths; they need no production credentials, SMTP, live Discord application or user data. PostgreSQL integration tests additionally verify upgrading the existing schema, preserving user/account/image data and enforcing identity uniqueness under concurrent inserts.
 
 `npm run test:db` requires a **new disposable local** PostgreSQL database through `TEST_DATABASE_URL`. Safety checks require a localhost host, database `walls_auth_test`, fixture user `walls_test` and fixture password `walls_test_fixture`; it refuses an existing application schema and never drops a database/schema to make the test pass. Never point it at production. The CI workflow provisions that fixture automatically. These are deliberately public test credentials, not deployment credentials.
 
@@ -237,21 +248,21 @@ See [`.env.example`](.env.example) for a full template.
 
 ## Scripts
 
-| Command                | Description                                      |
-| ---------------------- | ------------------------------------------------ |
-| `npm run dev`          | Start dev server (Turbopack)                     |
-| `npm run build`        | Production build                                 |
-| `npm run start`        | Start production server                          |
-| `npm run preview`      | Build + start                                    |
-| `npm run db:generate`  | Generate Drizzle migrations                      |
-| `npm run db:migrate`   | Run Drizzle migrations                           |
-| `npm run db:push`      | Push schema directly to the database             |
-| `npm run db:studio`    | Open Drizzle Studio                              |
-| `npm test`             | Isolated authentication policy/OAuth tests       |
-| `npm run test:db`      | Disposable PostgreSQL migration/uniqueness tests |
-| `npm run check`        | ESLint + TypeScript type-check                   |
-| `npm run format:check` | Prettier format check                            |
-| `npm run format:write` | Prettier auto-format                             |
+| Command                | Description                                         |
+| ---------------------- | --------------------------------------------------- |
+| `npm run dev`          | Start dev server (Turbopack)                        |
+| `npm run build`        | Production build                                    |
+| `npm run start`        | Start production server                             |
+| `npm run preview`      | Build + start                                       |
+| `npm run db:generate`  | Generate Drizzle migrations                         |
+| `npm run db:migrate`   | Run Drizzle migrations                              |
+| `npm run db:push`      | Push schema directly to the database                |
+| `npm run db:studio`    | Open Drizzle Studio                                 |
+| `npm test`             | Isolated authentication policy/OAuth/password tests |
+| `npm run test:db`      | Disposable PostgreSQL migration/uniqueness tests    |
+| `npm run check`        | ESLint + TypeScript type-check                      |
+| `npm run format:check` | Prettier format check                               |
+| `npm run format:write` | Prettier auto-format                                |
 
 ## Contributing
 

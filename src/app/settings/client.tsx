@@ -27,6 +27,8 @@ import type {
 } from "@/server/db/queries"
 import type { _getSettings } from "@/server/settings"
 
+import { PasswordSettings } from "./password-settings"
+
 const DarkModeToggle = dynamic(
   () => import("./dark-mode-toggle").then((mod) => mod.DarkModeToggle),
   { ssr: false },
@@ -44,11 +46,15 @@ export function Settings({
   settings,
   isAdmin,
   currentUserId,
+  email,
+  hasPassword,
   adminData,
 }: {
   settings: Awaited<ReturnType<typeof _getSettings>>
   isAdmin: boolean
   currentUserId: string
+  email: string
+  hasPassword: boolean
   adminData: AdminData | null
 }) {
   return (
@@ -76,6 +82,7 @@ export function Settings({
         </div>
       </Card>
       <DarkModeToggle />
+      <PasswordSettings email={email} hasPassword={hasPassword} />
 
       {isAdmin && adminData && (
         <AdminSettings adminData={adminData} currentUserId={currentUserId} />
