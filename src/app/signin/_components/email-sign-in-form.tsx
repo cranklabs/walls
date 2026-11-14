@@ -78,12 +78,20 @@ export function OtpSignInForm() {
       <Button type="submit" disabled={sendingOtp} className="h-11">
         {sendingOtp ? "Sending..." : "Send OTP"}
       </Button>
-      <Link
-        href="/signin/magic-link"
-        className="text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
-      >
-        Use a magic link instead
-      </Link>
+      <div className="flex justify-between gap-2 text-xs text-muted-foreground">
+        <Link
+          href="/signin/magic-link"
+          className="underline-offset-4 hover:underline"
+        >
+          Use a magic link
+        </Link>
+        <Link
+          href="/signin/password"
+          className="underline-offset-4 hover:underline"
+        >
+          Use a password
+        </Link>
+      </div>
       {error && <p className="text-center text-sm text-destructive">{error}</p>}
     </form>
   )

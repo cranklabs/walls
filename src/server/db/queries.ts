@@ -1,11 +1,12 @@
 import { toByteArray } from "base64-js"
-import { count, desc, eq, sql } from "drizzle-orm"
+import { and, count, desc, eq, sql } from "drizzle-orm"
 import { cacheLife } from "next/cache"
 import sharp from "sharp"
 
 import { db } from "."
 import { RemixConfigSchema, type RemixConfig } from "../remix/types"
 import {
+  accounts,
   appSettings,
   file,
   invite,
@@ -330,6 +331,17 @@ export async function removeInviteById(id: number) {
 
 export async function deleteInviteByEmail(email: string) {
   await db.delete(invite).where(eq(invite.email, email.toLowerCase()))
+}
+
+export async function hasPasswordCredential(userId: string) {
+  const [credential] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(
+      and(eq(accounts.userId, userId), eq(accounts.providerId, "credential")),
+    )
+    .limit(1)
+  return Boolean(credential)
 }
 
 // ── User Management ─────────────────────────────────────────────────

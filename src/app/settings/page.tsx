@@ -6,6 +6,7 @@ import {
   getAppSetting,
   getInviteList,
   getInviteRequests,
+  hasPasswordCredential,
 } from "@/server/db/queries"
 import { _getSettings } from "@/server/settings"
 
@@ -16,7 +17,10 @@ export default async function Page() {
   const user = session?.user
   if (!user) redirect("/signin")
 
-  const settings = await _getSettings(user.id)
+  const [settings, hasPassword] = await Promise.all([
+    _getSettings(user.id),
+    hasPasswordCredential(user.id),
+  ])
 
   // Fetch admin data if the user is an admin
   let adminData = null
@@ -44,6 +48,8 @@ export default async function Page() {
       settings={settings}
       isAdmin={!!user.isAdmin}
       currentUserId={user.id}
+      email={user.email}
+      hasPassword={hasPassword}
       adminData={adminData}
     />
   )

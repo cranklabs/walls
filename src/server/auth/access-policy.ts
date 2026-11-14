@@ -81,12 +81,18 @@ export function createAuthAccessPolicy(store: AuthAccessStore) {
     if (!user || user.blocked) return false as const
   }
 
+  async function canReceivePasswordReset(userId: string) {
+    const user = await store.findUserById(userId)
+    return Boolean(user && !user.blocked)
+  }
+
   return {
     emailAccessError,
     mapDiscordProfile,
     beforeUserCreate,
     beforeAccountCreate,
     beforeSessionCreate,
+    canReceivePasswordReset,
   }
 }
 

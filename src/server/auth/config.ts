@@ -8,13 +8,19 @@ import { db } from "@/server/db"
 import { deleteInviteByEmail, updateLastSeen } from "@/server/db/queries"
 import * as schema from "@/server/db/schema"
 import { sendEmail } from "@/server/email"
-import { magicLinkMessage, otpMessage } from "@/server/mail/messages"
+import {
+  magicLinkMessage,
+  otpMessage,
+  resetPasswordMessage,
+} from "@/server/mail/messages"
 
 import {
   createAuthAccessPolicy,
   getDiscordProviderOptions,
 } from "./access-policy"
 import { authAccessStore } from "./access-store"
+import { getEmailAndPasswordOptions } from "./password"
+import { createEmailSignInGuard } from "./sign-in-guard"
 
 const accessPolicy = createAuthAccessPolicy(authAccessStore)
 const discord = getDiscordProviderOptions(
@@ -25,45 +31,15 @@ const discord = getDiscordProviderOptions(
   accessPolicy,
 )
 export const isDiscordEnabled = Boolean(discord)
-
-async function enforceEmailSignInAccess(email: string) {
-  const normalizedEmail = email.trim().toLowerCase()
-  const error = await accessPolicy.emailAccessError(normalizedEmail)
-  if (error === "invalid_email") {
-    return new Response(
-      JSON.stringify({ error, message: "Enter a valid email address." }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    )
-  }
-  if (error === "blocked") {
-    return new Response(
-      JSON.stringify({
-        error: "blocked",
-        message: "This account has been blocked.",
-      }),
-      { status: 403, headers: { "Content-Type": "application/json" } },
-    )
-  }
-
-  if (!error) return
-
-  return new Response(
-    JSON.stringify({
-      error: "invite_only",
-      message: "This instance is invite-only.",
-      redirectTo: `/request-access?email=${encodeURIComponent(normalizedEmail)}`,
-    }),
-    {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    },
-  )
-}
+const guardEmailSignIn = createEmailSignInGuard(accessPolicy)
 
 export const auth = betterAuth({
   baseURL: env.APP_URL,
   secret: env.AUTH_SECRET,
   socialProviders: discord ? { discord } : {},
+  emailAndPassword: getEmailAndPasswordOptions(accessPolicy, (email, url) =>
+    sendEmail(resetPasswordMessage(email, url)),
+  ),
   onAPIError: { errorURL: `${env.APP_URL}/signin` },
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -153,22 +129,10 @@ export const auth = betterAuth({
     },
   },
   hooks: {
-    before: createAuthMiddleware(async (ctx) => {
-      const protectedEmailSignInPaths = new Set([
-        "/sign-in/magic-link",
-        "/email-otp/send-verification-otp",
-        "/sign-in/email-otp",
-      ])
-
-      // Intercept passwordless sign-in to enforce blocked/invite-only checks.
-      if (protectedEmailSignInPaths.has(ctx.path)) {
-        const body = ctx.body as { email?: string } | undefined
-        const email = body?.email
-        if (!email) return
-
-        return await enforceEmailSignInAccess(email)
-      }
-    }),
+    // Enforce blocked/invite-only rules before email and password sign-in.
+    before: createAuthMiddleware(async (ctx) =>
+      guardEmailSignIn(ctx.path, ctx.body),
+    ),
   },
 })
 
