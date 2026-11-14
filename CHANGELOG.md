@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/cranklabs/walls/compare/v1.12.2...v1.13.0) (2026-11-14)
+
+
+### Features
+
+* password sign-in for existing members ([#60](https://github.com/cranklabs/walls/issues/60)) ([88c7161](https://github.com/cranklabs/walls/commit/88c7161a9b7d0cf864f62ddfb4932174b288c7da)), closes [#33](https://github.com/cranklabs/walls/issues/33)
+
 ## [1.12.2](https://github.com/cranklabs/walls/compare/v1.12.1...v1.12.2) (2026-11-13)
 
 
