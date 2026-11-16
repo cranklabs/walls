@@ -4,7 +4,7 @@ import path from "path"
 import { Resvg } from "@resvg/resvg-js"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import sharp from "sharp"
+import sharp, { type OverlayOptions } from "sharp"
 
 import { getSession } from "../auth"
 import { db } from "../db"
@@ -167,7 +167,7 @@ export async function saveRemix(input: {
       { width, height },
     )
 
-    const overlays: sharp.OverlayOptions[] = []
+    const overlays: OverlayOptions[] = []
     if (hasNormal) {
       const png = rasterizeSvg(normalSvg, width)
       overlays.push({ input: png, top: 0, left: 0, blend: "over" })
