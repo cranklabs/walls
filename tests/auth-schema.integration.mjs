@@ -13,7 +13,7 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import test from "node:test"
 import { fileURLToPath } from "node:url"
-import { betterAuth } from "better-auth"
+import { betterAuth, getAuthStateVerificationIdentifier } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
@@ -210,7 +210,11 @@ test("compatible auth migrations preserve data and prevent duplicate identities"
         assert.equal(authorization.origin, "https://discord.com")
         const stored = await client.query(
           "select value from walls_verification where identifier=$1",
-          [authorization.searchParams.get("state")],
+          [
+            getAuthStateVerificationIdentifier(
+              authorization.searchParams.get("state"),
+            ),
+          ],
         )
         assert.equal(stored.rows.length, 1)
         assert.ok(stored.rows[0].value.length > 255)
