@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/cranklabs/walls/compare/v1.13.0...v1.13.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **deps:** resolve open Dependabot security alerts ([#63](https://github.com/cranklabs/walls/issues/63)) ([65486a1](https://github.com/cranklabs/walls/commit/65486a11a2a604c5b4c8f9908ef7d59bb96a3321)), closes [#62](https://github.com/cranklabs/walls/issues/62)
+
 ## [1.13.0](https://github.com/cranklabs/walls/compare/v1.12.2...v1.13.0) (2026-11-14)
 
 
